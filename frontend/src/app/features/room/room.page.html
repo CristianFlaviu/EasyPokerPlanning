@@ -5,13 +5,124 @@
       <mat-card-subtitle>{{ roomId() }}</mat-card-subtitle>
     </mat-card-header>
     <mat-card-content>
+      <mat-chip-set aria-label="Connection state">
+        <mat-chip>{{ connectionState() }}</mat-chip>
+      </mat-chip-set>
+
       @if (room(); as currentRoom) {
+        @if (!isParticipant()) {
+          <section class="join-room" [formGroup]="joinForm">
+            <mat-form-field appearance="outline">
+              <mat-label>Display name</mat-label>
+              <input matInput formControlName="displayName" maxlength="40" />
+            </mat-form-field>
+
+            @if (currentRoom.isPasswordProtected) {
+              <mat-form-field appearance="outline">
+                <mat-label>Password</mat-label>
+                <input matInput type="password" formControlName="password" />
+              </mat-form-field>
+            }
+
+            <button
+              mat-flat-button
+              type="button"
+              [disabled]="joinForm.invalid"
+              (click)="joinRoom()"
+            >
+              Join room
+            </button>
+          </section>
+        } @else if (currentRound(); as round) {
+          <section class="round">
+            <h2>{{ round.title ?? 'Current round' }}</h2>
+            <p>{{ round.phase }}</p>
+
+            <div class="deck" aria-label="Voting cards">
+              @for (card of deck; track card) {
+                <button
+                  mat-stroked-button
+                  type="button"
+                  [disabled]="round.phase !== 'Voting'"
+                  (click)="submitVote(card)"
+                >
+                  {{ card }}
+                </button>
+              }
+            </div>
+
+            @if (canModerate()) {
+              <div class="actions">
+                @if (round.phase === 'Voting') {
+                  <button mat-flat-button type="button" (click)="revealVotes()">Reveal</button>
+                } @else {
+                  <button mat-stroked-button type="button" (click)="resetRound()">Reset</button>
+                  <button mat-flat-button type="button" (click)="endRound()">End round</button>
+                }
+              </div>
+
+              @if (round.phase === 'Revealed') {
+                <div class="estimate-actions" aria-label="Final estimate">
+                  @for (card of deck; track card) {
+                    <button mat-button type="button" (click)="endRoundWithEstimate(card)">
+                      End as {{ card }}
+                    </button>
+                  }
+                </div>
+              }
+            }
+          </section>
+        } @else if (canModerate()) {
+          <section class="start-round">
+            <mat-form-field appearance="outline">
+              <mat-label>Round title</mat-label>
+              <input matInput [formControl]="roundTitle" maxlength="200" />
+            </mat-form-field>
+            <button mat-flat-button type="button" (click)="startRound()">Start round</button>
+          </section>
+        }
+
+        @if (ownParticipant(); as self) {
+          <section class="role-actions" aria-label="Participant role">
+            @if (self.role === 'Voter') {
+              <button mat-stroked-button type="button" (click)="changeOwnRole('Observer')">
+                Observe
+              </button>
+            } @else {
+              <button mat-stroked-button type="button" (click)="changeOwnRole('Voter')">
+                Vote
+              </button>
+            }
+          </section>
+        }
+
         <mat-list>
-          @for (participant of currentRoom.participants; track participant.id) {
+          @for (participant of participants(); track participant.id) {
             <mat-list-item>
               <span matListItemTitle>{{ participant.displayName }}</span>
-              <span matListItemLine>{{ participant.role }}</span>
+              <span matListItemLine>
+                {{ participant.role }}
+                @if (currentRoom.ownerId === participant.id) {
+                  - owner
+                } @else if (isModerator(participant.id)) {
+                  - moderator
+                }
+                {{ voteDisplay(participant.id) }}
+              </span>
+              @if (isOwner() && currentRoom.ownerId !== participant.id) {
+                @if (isModerator(participant.id)) {
+                  <button mat-button type="button" (click)="demoteModerator(participant.id)">
+                    Demote
+                  </button>
+                } @else {
+                  <button mat-button type="button" (click)="promoteModerator(participant.id)">
+                    Promote
+                  </button>
+                }
+              }
             </mat-list-item>
+          } @empty {
+            <mat-list-item>No participants yet</mat-list-item>
           }
         </mat-list>
       } @else {

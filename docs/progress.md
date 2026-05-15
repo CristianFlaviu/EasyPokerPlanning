@@ -31,52 +31,90 @@ Last updated: 2026-05-15
 - Frontend: `RoomApiService.getRoom(...)` / `joinRoom(...)`; room page loads room metadata and participant list
 - Verification: `dotnet build backend/PokerPlanning.slnx` and `npm run build` pass
 
+### SignalR backend plumbing
+- Api: `RoomHub` mapped at `/hubs/rooms`; hub methods only join/leave room groups and validate anonymous participant id
+- Api: strongly typed `IRoomClient` with first event `ParticipantJoined`
+- Application: `IRoomNotifier` abstraction and `ParticipantJoinedEventHandler`
+- Infrastructure: `PokerPlanningDbContext.SaveChangesAsync` now publishes aggregate domain events through MediatR after persistence and clears them afterward
+- Api: `RoomNotifier` wraps `IHubContext<RoomHub, IRoomClient>` and broadcasts `ParticipantJoined` to the room group
+- Verification: `dotnet build backend/PokerPlanning.slnx` passes
+
+### Frontend SignalR client
+- Added npm package `@microsoft/signalr`
+- Frontend: `core/signalr/SignalRService` owns hub connection lifecycle, participant signals, connection state, reconnect group rejoin, and `ParticipantJoined` handling
+- Frontend: room page connects to `/hubs/rooms`, joins/leaves the room group, seeds participants from `GET /rooms/{id}`, and updates live participant list from SignalR
+- Verification: `npm run build` passes
+
+### Round lifecycle slice
+- Domain: added `Round`, `CompletedRound`, `RoundPhase`, round lifecycle methods on `Room`, and domain errors for active/missing/invalid round transitions
+- Domain events: `RoundStartedEvent`, `VoteSubmittedEvent`, `VotesRevealedEvent`, `RoundResetEvent`, `RoundEndedEvent`
+- Application: command slices for `StartRound`, `SubmitVote`, `RevealVotes`, `ResetRound`, `EndRound` with notification handlers that broadcast through `IRoomNotifier`
+- Infrastructure: EF maps `CurrentRound` onto `rooms` and completed history to `completed_rounds`; vote snapshots are stored as JSON text through Infrastructure converters
+- Api: endpoints for `POST /rooms/{id}/rounds`, `/round/vote`, `/round/reveal`, `/round/reset`, `/round/end`; `GET /rooms/{id}` includes current round state
+- SignalR: typed client now supports round started, vote submitted, votes revealed, round reset, and round ended events
+- Frontend: room page has a minimal voting surface with start round, fixed Fibonacci deck, voted indicators, reveal/reset/end owner controls, and live SignalR round state
+- Verification: `dotnet build backend/PokerPlanning.slnx` and `npm run build` pass
+
+### Frontend room flow hardening
+- Shared room links now show a join form for browsers whose `participantId` is not in the room
+- Join flow supports password-protected rooms and joins as `Voter`
+- Voting UI shows the current user's own selected card before reveal while other votes remain hidden
+- Revealed rounds can be ended with a selected final Fibonacci estimate
+- Verification: `npm run build` passes
+
+### History slice
+- Application: `GetParticipantRooms` and `GetRoomHistory` queries
+- Infrastructure: repository methods load room history and participant room summaries
+- Api: `GET /rooms/history?participantId=...` and `GET /rooms/{id}/history`
+- Frontend: lazy `/history` page lists rooms for the current participant and lets users inspect completed rounds
+- Verification: `dotnet build backend/PokerPlanning.slnx` and `npm run build` pass
+
+### Moderator and role management slice
+- Domain: `Room.PromoteToModerator`, `DemoteModerator`, and `ChangeRole`
+- Domain events: `ModeratorPromotedEvent`, `ModeratorDemotedEvent`, `ParticipantRoleChangedEvent`
+- Application: command slices and notification handlers for promote/demote/change role
+- Infrastructure: `ModeratorIds` is now persisted as JSON text on `rooms`
+- Api: endpoints for promoting/demoting moderators and changing the caller's voter/observer role
+- SignalR: typed events update moderator ids and participant roles in connected clients
+- Frontend: owner can promote/demote participants; users can toggle their own voter/observer role; moderator ids now gate moderator UI alongside owner
+- Verification: `dotnet build backend/PokerPlanning.slnx` and `npm run build` pass
+
 ---
 
 ## In progress / blocked
 
-- **CreateRoom end-to-end not verified.** Frontend `POST /rooms` returns status 0 (browser blocked / connection refused). Likely cause: Api standalone run fails because Aspire connection strings `postgres`/`redis` only injected by AppHost. AppHost assigns proxied ports, not 5218.
-  - **Unblock options:**
-    1. Add fallback `ConnectionStrings:postgres` + `ConnectionStrings:redis` in `appsettings.Development.json` so Api boots standalone against a local docker-compose Postgres
-    2. OR launch AppHost, read assigned Api port from Aspire dashboard, update `frontend/src/environments/environment.ts`
-    3. OR add Angular dev server to AppHost as a resource so Aspire injects the API URL into the FE env
+- **Runtime E2E is blocked by stale local Postgres schema.**
+  - AppHost starts and the API was reachable during smoke testing.
+  - `POST /rooms` returned 500 because the existing Aspire Postgres data volume still has the original `poker.rooms` table shape.
+  - Confirmed on 2026-05-15 with `\d poker.rooms`: the table lacks the new round/moderator columns added after the initial CreateRoom slice.
+  - Until migrations exist, local dev needs a database/volume reset before end-to-end verification.
+- **API URL still needs a stable frontend story.**
+  - Frontend `environment.ts` points to `http://localhost:5218`.
+  - AppHost assigns a dynamic proxied API port, so manual local runs may require updating the frontend API URL or running the API directly with valid connection strings.
+  - Longer-term options: add fallback development connection strings, add Angular to AppHost, or generate frontend environment from Aspire.
 
 ---
 
 ## Next (priority order)
 
-1. **SignalR plumbing (smallest E2E real-time proof):**
-   - `RoomHub` in Api (auth via `X-Participant-Id`, group = roomId, only `JoinRoomGroup`/`LeaveRoomGroup` — no business logic)
-   - `IRoomNotifier` interface in Application, impl in Api wraps `IHubContext<RoomHub, IRoomClient>`
-   - `INotificationHandler<ParticipantJoinedEvent>` dispatches to notifier after `SaveChanges`
-   - Frontend `SignalRService` with signal-based API (`participants`, `connectionState`)
-   - First real-time event: `ParticipantJoined`
-2. **Round lifecycle (5 commands, biggest chunk):**
-   - `StartRound` (owner/mod only)
-   - `SubmitVote` (voter only, replaces on re-submit, only during `Voting` phase)
-   - `RevealVotes`
-   - `ResetCurrentRound`
-   - `EndRound` (persist `CompletedRound` to Postgres, raise event)
-3. **Redis live state store** — `IRoomLiveStateStore` (Application interface) + Redis impl (Infrastructure). Per backend CLAUDE.md: Postgres = metadata + history; Redis = live round + votes + presence. Aggregates reconstituted from both.
-4. **Frontend room voting UI** — card grid, participant list, reveal/reset buttons (owner+mod gated), live updates via SignalR signals.
-5. **History views** — `GET /rooms/history?participantId=`, `GET /rooms/{id}/history`.
+1. **Redis live state store** — `IRoomLiveStateStore` (Application interface) + Redis impl (Infrastructure). Per backend CLAUDE.md: Postgres = metadata + history; Redis = live round + votes + presence. Aggregates reconstituted from both.
+2. **Runtime E2E smoke test after dev DB reset** — run AppHost + Angular, verify create/join/start/vote/reveal/end/history in browser. Current compile checks pass, but full request flow is blocked by the stale local database schema.
 
 ---
 
 ## Tech debt (deferred, list out so it doesn't get lost)
 
-- **`Room.ModeratorIds` persistence** — currently `Ignore`d in `RoomConfiguration`. Needs JSON column or join table once `PromoteToModerator` ships.
 - **EF migration baseline** — currently `db.Database.EnsureCreated()` in dev. Replace with first migration once schema settles (post round-lifecycle).
-- **Domain event dispatch** — events raised on aggregate (`RoomCreatedEvent`) but no dispatcher pumps them to MediatR notification handlers after `SaveChanges`. Add `IUnitOfWork` pipeline behavior or `DbContext.SaveChangesAsync` override.
 - **EFCore.Relational version pin** — Api has explicit `10.0.8` pin to resolve conflict with Aspire's transitive `10.0.7`. Drop when Aspire publishes newer compatible version.
-- **`PromoteToModerator` / `DemoteFromModerator` / `ChangeRole` / `LeaveRoom`** — domain methods not yet on `Room`. Add when round lifecycle is in place.
+- **`LeaveRoom`** — domain method/command not yet implemented. Add once presence/live-state behavior is clearer.
+- **Runtime verification automation** — add a repeatable smoke script after migrations or a database reset workflow exists.
 
 ---
 
 ## Known issues
 
-- Frontend POST /rooms returns status 0 (see "In progress" above)
-- No end-to-end smoke test run yet — backend + frontend compile clean but full request flow unverified
+- Existing Aspire Postgres data volume is stale and causes `POST /rooms` to return 500 until reset or migrated.
+- End-to-end browser flow remains unverified; backend and frontend compile clean, and command-line smoke reached the API but stopped on stale schema.
 
 ---
 

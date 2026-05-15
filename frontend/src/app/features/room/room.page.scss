@@ -3,3 +3,54 @@
   display: flex;
   justify-content: center;
 }
+
+mat-card {
+  width: min(42rem, 100%);
+}
+
+mat-chip-set {
+  margin: 1rem 0 0.5rem;
+}
+
+.round,
+.start-round,
+.join-room {
+  margin: 1rem 0;
+}
+
+.round h2 {
+  margin: 0;
+}
+
+.round p {
+  margin: 0.25rem 0 1rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.deck,
+.actions,
+.start-round,
+.join-room,
+.estimate-actions,
+.role-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.deck button {
+  min-width: 3.25rem;
+}
+
+mat-form-field {
+  flex: 1 1 16rem;
+}
+
+.estimate-actions {
+  margin-top: 0.75rem;
+}
+
+.role-actions {
+  margin: 0.75rem 0;
+}

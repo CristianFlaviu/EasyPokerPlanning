@@ -10,9 +10,22 @@ public sealed record GetRoomResult(
     string Name,
     Guid OwnerId,
     bool IsPasswordProtected,
-    IReadOnlyList<GetRoomParticipantResult> Participants);
+    IReadOnlyList<GetRoomParticipantResult> Participants,
+    IReadOnlyList<Guid> ModeratorIds,
+    GetRoomRoundResult? CurrentRound);
 
 public sealed record GetRoomParticipantResult(
     Guid Id,
     string DisplayName,
     string Role);
+
+public sealed record GetRoomRoundResult(
+    Guid Id,
+    string? Title,
+    string Phase,
+    IReadOnlyList<GetRoomVoteResult> Votes);
+
+public sealed record GetRoomVoteResult(
+    Guid ParticipantId,
+    string? Card,
+    bool IsRevealed);

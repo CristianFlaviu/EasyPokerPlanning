@@ -21,6 +21,8 @@ public static class ResultExtensions
             "Validation" => (StatusCodes.Status400BadRequest, "Validation failed"),
             "Room.NotFound" => (StatusCodes.Status404NotFound, "Not found"),
             "Room.InvalidPassword" => (StatusCodes.Status403Forbidden, "Forbidden"),
+            "Room.NotAuthorized" => (StatusCodes.Status403Forbidden, "Forbidden"),
+            "Room.ParticipantNotFound" => (StatusCodes.Status404NotFound, "Not found"),
             _ => (StatusCodes.Status400BadRequest, "Bad request"),
         };
 

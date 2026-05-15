@@ -1,5 +1,8 @@
 using PokerPlanning.Api.Endpoints;
+using PokerPlanning.Api.Hubs;
+using PokerPlanning.Api.Realtime;
 using PokerPlanning.Application;
+using PokerPlanning.Application.Abstractions.Realtime;
 using PokerPlanning.Infrastructure;
 using PokerPlanning.Infrastructure.Persistence;
 using Scalar.AspNetCore;
@@ -13,6 +16,8 @@ builder.AddRedisClient("redis");
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure();
+builder.Services.AddSignalR();
+builder.Services.AddScoped<IRoomNotifier, RoomNotifier>();
 
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
@@ -47,5 +52,6 @@ if (app.Environment.IsDevelopment())
 
 app.MapDefaultEndpoints();
 app.MapRoomEndpoints();
+app.MapHub<RoomHub>("/hubs/rooms");
 
 app.Run();
