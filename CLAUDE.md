@@ -23,7 +23,8 @@ poker-planning/
 ├── CLAUDE.md                # this file
 ├── AGENTS.md                # Codex equivalent (kept in sync with this file)
 ├── docs/
-│   └── domain-model.md      # canonical business rules — read before adding features
+│   ├── domain-model.md      # canonical business rules — read before adding features
+│   └── progress.md          # what's done, what's blocked, what's next — read on entry, update at end of each slice
 ├── backend/
 │   ├── CLAUDE.md            # backend-specific rules
 │   └── src/

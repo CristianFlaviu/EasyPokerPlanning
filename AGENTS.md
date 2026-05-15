@@ -28,7 +28,9 @@ If you generate code that looks like older Angular (`*ngIf`, `NgModule`, `@Input
 ```
 poker-planning/
 ├── CLAUDE.md / AGENTS.md
-├── docs/domain-model.md     # read before any feature work
+├── docs/
+│   ├── domain-model.md      # read before any feature work
+│   └── progress.md          # what's done, what's blocked, what's next — read on entry, update at end of each slice
 ├── backend/
 │   ├── CLAUDE.md / AGENTS.md
 │   └── src/
