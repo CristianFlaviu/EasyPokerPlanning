@@ -39,7 +39,7 @@
             type="submit"
             class="room__join-btn"
             [disabled]="joinForm.invalid"
-          >Join room →</button>
+          >Join room</button>
         </form>
       </section>
     } @else {
@@ -89,7 +89,7 @@
               @for (seat of topSeats(); track seat.id) {
                 <div class="seat pp-fade-up" [class.seat--self]="seat.isSelf">
                   @if (seat.isObserver) {
-                    <div class="seat__card seat__card--observer">👁</div>
+                    <div class="seat__card seat__card--observer"><mat-icon>visibility</mat-icon></div>
                   } @else if (seat.revealedCard) {
                     <pp-playing-card
                       size="micro"
@@ -118,7 +118,7 @@
                     <mat-label>Round title</mat-label>
                     <input matInput [formControl]="roundTitle" maxlength="200" />
                   </mat-form-field>
-                  <button mat-flat-button color="primary" type="submit">Start round →</button>
+                  <button mat-flat-button color="primary" type="submit">Start round</button>
                 </form>
               } @else if (isRevealed() && modeCard()) {
                 <div class="room__suggested">
@@ -130,9 +130,9 @@
                   Reveal cards
                 </button>
               } @else if (currentRound()) {
-                <div class="room__wait">Waiting for the moderator to reveal…</div>
+                <div class="room__wait">Waiting for the moderator to reveal...</div>
               } @else {
-                <div class="room__wait">Waiting for moderator to start a round…</div>
+                <div class="room__wait">Waiting for moderator to start a round...</div>
               }
             </div>
 
@@ -145,7 +145,7 @@
                     <span class="seat__role">{{ seat.role }}</span>
                   </div>
                   @if (seat.isObserver) {
-                    <div class="seat__card seat__card--observer">👁</div>
+                    <div class="seat__card seat__card--observer"><mat-icon>visibility</mat-icon></div>
                   } @else if (seat.revealedCard) {
                     <pp-playing-card
                       size="micro"
@@ -205,7 +205,7 @@
                 </div>
                 <p class="rail-hint">
                   @if (ownVote()) {
-                    Selected: <strong>{{ ownVote() }}</strong> — change anytime before reveal.
+                    Selected: <strong>{{ ownVote() }}</strong>. Change anytime before reveal.
                   } @else {
                     Tap a card to lock in your vote.
                   }
@@ -286,7 +286,7 @@
   <main class="room">
     <div class="room__loading">
       <div class="loader"></div>
-      <p>Loading room…</p>
+      <p>Loading room...</p>
     </div>
   </main>
 }

@@ -172,7 +172,7 @@ export class RoomPage {
       .filter((n) => !Number.isNaN(n));
 
     if (numeric.length === 0) {
-      return { avg: '—', median: '—', spread: '—', consensus: '—', mode: null };
+      return { avg: '-', median: '-', spread: '-', consensus: '-', mode: null };
     }
 
     const sorted = [...numeric].sort((a, b) => a - b);
@@ -183,7 +183,7 @@ export class RoomPage {
       sorted.length % 2 === 0 ? ((sorted[mid - 1] + sorted[mid]) / 2).toFixed(1) : `${sorted[mid]}`;
     const spread = sorted[0] === sorted[sorted.length - 1]
       ? `${sorted[0]}`
-      : `${sorted[0]}–${sorted[sorted.length - 1]}`;
+      : `${sorted[0]}-${sorted[sorted.length - 1]}`;
 
     const counts = new Map<number, number>();
     sorted.forEach((n) => counts.set(n, (counts.get(n) ?? 0) + 1));

@@ -5,11 +5,13 @@
 
 <main class="lobby">
   <section class="lobby__hero">
-    <pp-fanned-deck [spread]="10" [height]="200" />
     <div class="lobby__copy pp-fade-up">
-      <span class="pp-chip pp-chip--accent">Real-time · Anonymous · Free</span>
+      <span class="pp-chip pp-chip--accent">Real-time / Anonymous / Free</span>
       <h1>Estimate, together.</h1>
       <p>Planning poker for agile teams. Spin up a room, share a link, vote on Fibonacci cards, reveal together.</p>
+    </div>
+    <div class="lobby__deck-shell">
+      <pp-fanned-deck [spread]="10" [height]="210" />
     </div>
   </section>
 
@@ -44,10 +46,10 @@
         @if (submitting()) {
           <span class="dot-pulse">Creating</span>
         } @else {
-          Create room →
+          Create room
         }
       </button>
     </form>
-    <footer class="lobby__foot">Anonymous · No accounts · Nothing tracked.</footer>
+    <footer class="lobby__foot">Anonymous / No accounts / Nothing tracked.</footer>
   </section>
 </main>

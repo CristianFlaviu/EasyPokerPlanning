@@ -11,9 +11,10 @@
   }
 
   &__rooms {
-    background: white;
+    background:
+      linear-gradient(180deg, oklch(100% 0 0 / 0.96), oklch(98% 0.01 250 / 0.98));
     border-radius: var(--pp-radius-lg);
-    border: 1px solid oklch(0% 0 0 / 0.06);
+    border: 1px solid oklch(84% 0.03 250 / 0.9);
     box-shadow: var(--pp-shadow-md);
     overflow: hidden;
 
@@ -22,13 +23,13 @@
       align-items: center;
       justify-content: space-between;
       padding: 18px 20px;
-      border-bottom: 1px solid oklch(0% 0 0 / 0.06);
+      border-bottom: 1px solid oklch(84% 0.03 250);
 
       h3 {
         margin: 0;
         font-size: 16px;
         font-weight: 700;
-        letter-spacing: -0.01em;
+        letter-spacing: 0;
       }
     }
 
@@ -59,7 +60,10 @@
         transition: background 180ms ease;
       }
 
-      &:hover { background: var(--pp-paper-2); }
+      &:hover {
+        background: var(--pp-paper-2);
+        transform: translateX(2px);
+      }
 
       &.is-active {
         background: var(--pp-accent-soft);
@@ -81,9 +85,10 @@
   }
 
   &__rounds {
-    background: white;
+    background:
+      linear-gradient(180deg, oklch(100% 0 0 / 0.96), oklch(98% 0.01 250 / 0.98));
     border-radius: var(--pp-radius-lg);
-    border: 1px solid oklch(0% 0 0 / 0.06);
+    border: 1px solid oklch(84% 0.03 250 / 0.9);
     box-shadow: var(--pp-shadow-md);
     padding: 24px;
 
@@ -94,13 +99,13 @@
       gap: 16px;
       margin-bottom: 20px;
       padding-bottom: 20px;
-      border-bottom: 1px solid oklch(0% 0 0 / 0.06);
+      border-bottom: 1px solid oklch(84% 0.03 250);
 
       h2 {
         margin: 4px 0 4px;
         font-size: 24px;
         font-weight: 700;
-        letter-spacing: -0.015em;
+        letter-spacing: 0;
       }
     }
 
@@ -111,7 +116,7 @@
     font-family: var(--pp-mono);
     font-size: 11px;
     color: var(--pp-accent);
-    letter-spacing: 0.1em;
+    letter-spacing: 0;
   }
 
   &__no-rounds {
@@ -129,7 +134,7 @@
     align-items: center;
     gap: 16px;
 
-    h2 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+    h2 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 0; }
     p { margin: 0; color: var(--pp-ink-soft); line-height: 1.5; }
   }
 
@@ -181,7 +186,7 @@
     gap: 16px;
     padding: 14px 16px;
     background: white;
-    border: 1px solid oklch(0% 0 0 / 0.06);
+    border: 1px solid oklch(84% 0.03 250 / 0.9);
     border-radius: var(--pp-radius-md);
     transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 

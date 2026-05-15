@@ -79,6 +79,12 @@ Last updated: 2026-05-15
 - Frontend: owner can promote/demote participants; users can toggle their own voter/observer role; moderator ids now gate moderator UI alongside owner
 - Verification: `dotnet build backend/PokerPlanning.slnx` and `npm run build` pass
 
+### Frontend visual refresh
+- Replaced the plum/violet Material and custom theme tokens with a cooler blue/cyan palette
+- Refined lobby, room, and history page surfaces with lighter professional styling, sharper radii, blue-tinted borders/shadows, and reduced decorative gradients
+- Cleaned visible UI copy punctuation and observer indicators
+- Verification: `npm run build` passes with the existing `room.page.scss` style budget warning
+
 ---
 
 ## In progress / blocked
