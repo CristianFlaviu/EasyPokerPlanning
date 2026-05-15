@@ -21,7 +21,7 @@ const string AngularDevCors = "AngularDev";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(AngularDevCors, policy => policy
-        .WithOrigins("http://localhost:4200")
+        .WithOrigins("http://localhost:4200", "http://localhost:4301")
         .AllowAnyHeader()
         .AllowAnyMethod()
         .AllowCredentials());

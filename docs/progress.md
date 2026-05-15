@@ -23,6 +23,14 @@ Last updated: 2026-05-15
 - AppHost: Postgres (with pgAdmin + data volume) + db `pokerplanning` + Redis (with RedisInsight) + Api wired via `WithReference` + `WaitFor`
 - Frontend: `domain/room.ts` types, `IdentityService` (localStorage participantId), `participant-id` + `error` HTTP interceptors, `environments/environment.ts` (`apiBaseUrl = http://localhost:5218`), `features/lobby/` (RoomApiService + LobbyPage reactive form), `features/room/` placeholder, lazy routes, `app.config.ts` with `provideHttpClient` + `provideAnimationsAsync`
 
+### JoinRoom + GetRoom slice
+- Domain: `Room.AddParticipant(...)` supports new participants and same-participant rejoin/rename; raises `ParticipantJoinedEvent`
+- Application: `Features/JoinRoom/` with password verification through `IPasswordHasher`; `Features/GetRoom/` returns room metadata + participants
+- Infrastructure: `RoomRepository.GetByIdAsync` includes owned participants
+- Api: `POST /rooms/{id}/join` and `GET /rooms/{id}`
+- Frontend: `RoomApiService.getRoom(...)` / `joinRoom(...)`; room page loads room metadata and participant list
+- Verification: `dotnet build backend/PokerPlanning.slnx` and `npm run build` pass
+
 ---
 
 ## In progress / blocked
@@ -37,23 +45,21 @@ Last updated: 2026-05-15
 
 ## Next (priority order)
 
-1. **JoinRoom slice** — domain method `room.AddParticipant(participantId, displayName, password?)` with password verify; `POST /rooms/{id}/join`; raises `ParticipantJoinedEvent`. Reuses same pattern as CreateRoom.
-2. **GetRoom query** — `GET /rooms/{id}` returns metadata + participants. Frontend room.page needs it on load.
-3. **SignalR plumbing (smallest E2E real-time proof):**
+1. **SignalR plumbing (smallest E2E real-time proof):**
    - `RoomHub` in Api (auth via `X-Participant-Id`, group = roomId, only `JoinRoomGroup`/`LeaveRoomGroup` — no business logic)
    - `IRoomNotifier` interface in Application, impl in Api wraps `IHubContext<RoomHub, IRoomClient>`
    - `INotificationHandler<ParticipantJoinedEvent>` dispatches to notifier after `SaveChanges`
    - Frontend `SignalRService` with signal-based API (`participants`, `connectionState`)
    - First real-time event: `ParticipantJoined`
-4. **Round lifecycle (5 commands, biggest chunk):**
+2. **Round lifecycle (5 commands, biggest chunk):**
    - `StartRound` (owner/mod only)
    - `SubmitVote` (voter only, replaces on re-submit, only during `Voting` phase)
    - `RevealVotes`
    - `ResetCurrentRound`
    - `EndRound` (persist `CompletedRound` to Postgres, raise event)
-5. **Redis live state store** — `IRoomLiveStateStore` (Application interface) + Redis impl (Infrastructure). Per backend CLAUDE.md: Postgres = metadata + history; Redis = live round + votes + presence. Aggregates reconstituted from both.
-6. **Frontend room voting UI** — card grid, participant list, reveal/reset buttons (owner+mod gated), live updates via SignalR signals.
-7. **History views** — `GET /rooms/history?participantId=`, `GET /rooms/{id}/history`.
+3. **Redis live state store** — `IRoomLiveStateStore` (Application interface) + Redis impl (Infrastructure). Per backend CLAUDE.md: Postgres = metadata + history; Redis = live round + votes + presence. Aggregates reconstituted from both.
+4. **Frontend room voting UI** — card grid, participant list, reveal/reset buttons (owner+mod gated), live updates via SignalR signals.
+5. **History views** — `GET /rooms/history?participantId=`, `GET /rooms/{id}/history`.
 
 ---
 

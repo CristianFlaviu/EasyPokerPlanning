@@ -33,7 +33,14 @@ public sealed class Participant
 
     public void SetRole(ParticipantRole role) => Role = role;
 
-    internal void Rename(string displayName) => DisplayName = displayName;
+    internal Result Rename(string displayName)
+    {
+        if (string.IsNullOrWhiteSpace(displayName) || displayName.Length > MaxDisplayNameLength)
+            return Result.Failure(ParticipantErrors.InvalidDisplayName);
+
+        DisplayName = displayName.Trim();
+        return Result.Success();
+    }
 }
 
 public static class ParticipantErrors

@@ -17,4 +17,5 @@ export interface Room {
   readonly name: string;
   readonly ownerId: ParticipantId;
   readonly isPasswordProtected: boolean;
+  readonly participants: readonly Participant[];
 }

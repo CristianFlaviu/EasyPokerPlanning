@@ -7,7 +7,9 @@ namespace PokerPlanning.Infrastructure.Persistence;
 public sealed class RoomRepository(PokerPlanningDbContext db) : IRoomRepository
 {
     public Task<Room?> GetByIdAsync(RoomId id, CancellationToken ct) =>
-        db.Rooms.FirstOrDefaultAsync(r => r.Id == id, ct);
+        db.Rooms
+            .Include(r => r.Participants)
+            .FirstOrDefaultAsync(r => r.Id == id, ct);
 
     public async Task AddAsync(Room room, CancellationToken ct) =>
         await db.Rooms.AddAsync(room, ct);

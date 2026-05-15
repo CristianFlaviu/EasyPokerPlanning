@@ -1,8 +1,22 @@
 <section class="room">
   <mat-card>
     <mat-card-header>
-      <mat-card-title>Room {{ roomId() }}</mat-card-title>
-      <mat-card-subtitle>Voting UI lands in the next slice.</mat-card-subtitle>
+      <mat-card-title>{{ room()?.name ?? 'Room' }}</mat-card-title>
+      <mat-card-subtitle>{{ roomId() }}</mat-card-subtitle>
     </mat-card-header>
+    <mat-card-content>
+      @if (room(); as currentRoom) {
+        <mat-list>
+          @for (participant of currentRoom.participants; track participant.id) {
+            <mat-list-item>
+              <span matListItemTitle>{{ participant.displayName }}</span>
+              <span matListItemLine>{{ participant.role }}</span>
+            </mat-list-item>
+          }
+        </mat-list>
+      } @else {
+        <p>Loading room...</p>
+      }
+    </mat-card-content>
   </mat-card>
 </section>

@@ -57,6 +57,33 @@ public sealed class Room : AggregateRoot
         room.RaiseDomainEvent(new RoomCreatedEvent(room.Id, ownerId, now));
         return Result.Success(room);
     }
+
+    public Result AddParticipant(
+        ParticipantId participantId,
+        string displayName,
+        ParticipantRole role,
+        DateTimeOffset now)
+    {
+        var existing = _participants.FirstOrDefault(p => p.Id == participantId);
+        if (existing is not null)
+        {
+            var renameResult = existing.Rename(displayName);
+            if (renameResult.IsFailure)
+                return renameResult;
+
+            existing.SetRole(role);
+            RaiseDomainEvent(new ParticipantJoinedEvent(Id, participantId, now));
+            return Result.Success();
+        }
+
+        var participantResult = Participant.Create(participantId, displayName, role, now);
+        if (participantResult.IsFailure)
+            return Result.Failure(participantResult.Error);
+
+        _participants.Add(participantResult.Value);
+        RaiseDomainEvent(new ParticipantJoinedEvent(Id, participantId, now));
+        return Result.Success();
+    }
 }
 
 public static class RoomErrors
