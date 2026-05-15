@@ -1,7 +1,7 @@
 .lobby {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 40px 24px 72px;
+  padding: 48px 24px 56px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(380px, 460px);
   align-items: center;
@@ -9,10 +9,10 @@
 
   &__hero {
     width: 100%;
-    min-height: 560px;
+    min-height: 620px;
     display: grid;
     align-content: center;
-    gap: 36px;
+    gap: 48px;
     position: relative;
   }
 
@@ -21,11 +21,11 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 18px;
+    gap: 22px;
 
     h1 {
       font-size: clamp(42px, 4vw, 58px);
-      line-height: 1.12;
+      line-height: 1.16;
       font-weight: 800;
       letter-spacing: 0;
       margin: 0;
@@ -37,7 +37,7 @@
     }
 
     p {
-      margin: 0;
+      margin: 2px 0 0;
       color: var(--pp-ink-soft);
       font-size: 17px;
       line-height: 1.6;
@@ -46,22 +46,24 @@
   }
 
   &__deck-shell {
-    width: min(640px, 100%);
-    padding: 28px 12px 12px;
+    width: min(720px, 100%);
+    min-height: 330px;
+    padding: 34px 18px 18px;
     border-radius: var(--pp-radius-lg);
     background:
-      linear-gradient(180deg, oklch(100% 0 0 / 0.72), oklch(100% 0 0 / 0.28)),
-      linear-gradient(120deg, oklch(58% 0.17 246 / 0.10), oklch(72% 0.13 210 / 0.08));
-    border: 1px solid oklch(84% 0.03 250 / 0.9);
+      linear-gradient(180deg, oklch(99% 0.01 250 / 0.68), oklch(90% 0.05 245 / 0.28)),
+      linear-gradient(130deg, oklch(58% 0.17 246 / 0.18), oklch(72% 0.13 210 / 0.16));
+    border: 1px solid oklch(78% 0.05 250 / 0.95);
     box-shadow: var(--pp-shadow-md);
     overflow: hidden;
+    animation: pp-panel-breathe 8s ease-in-out infinite;
   }
 
   &__panel {
     width: 100%;
-    padding: 34px;
+    padding: 36px;
     background:
-      linear-gradient(180deg, oklch(100% 0 0 / 0.96), oklch(98% 0.01 250 / 0.96));
+      linear-gradient(180deg, oklch(98% 0.01 250 / 0.96), oklch(94% 0.03 245 / 0.96));
     border-radius: var(--pp-radius-lg);
     border: 1px solid oklch(84% 0.03 250 / 0.9);
     box-shadow: var(--pp-shadow-lg);
@@ -123,6 +125,15 @@
   animation: pp-pulse-dot 1.2s infinite;
 }
 
+@keyframes pp-panel-breathe {
+  0%, 100% {
+    box-shadow: var(--pp-shadow-md);
+  }
+  50% {
+    box-shadow: 0 18px 48px oklch(58% 0.17 246 / 0.16), 0 4px 14px oklch(12% 0.04 250 / 0.07);
+  }
+}
+
 @media (max-width: 900px) {
   .lobby {
     grid-template-columns: 1fr;
@@ -143,4 +154,5 @@
       }
     }
   }
+
 }

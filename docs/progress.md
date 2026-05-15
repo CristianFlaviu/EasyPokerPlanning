@@ -82,8 +82,13 @@ Last updated: 2026-05-15
 ### Frontend visual refresh
 - Replaced the plum/violet Material and custom theme tokens with a cooler blue/cyan palette
 - Refined lobby, room, and history page surfaces with lighter professional styling, sharper radii, blue-tinted borders/shadows, and reduced decorative gradients
+- Improved lobby hero spacing, scaled up the fanned card panel, fixed fan-entry animation transform behavior, and added a slim lobby footer
 - Cleaned visible UI copy punctuation and observer indicators
 - Verification: `npm run build` passes with the existing `room.page.scss` style budget warning
+
+### Footer polish
+- Modernized the shared Angular app footer with a responsive glassy band, stronger brand block, highlight chips, and clearer navigation/focus states
+- Verification: `npm run build` passes with the existing `room.page.scss` style budget warning; Angular dev server responds at `http://127.0.0.1:4200/`
 
 ---
 

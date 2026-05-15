@@ -10,7 +10,8 @@ import { PlayingCardComponent } from '../playing-card/playing-card.component';
       @for (item of fan(); track item.value; let i = $index) {
         <div
           class="fanned-slot"
-          [style.transform]="item.transform"
+          [style.--fan-transform]="item.transform"
+          [style.--fan-hover-transform]="item.hoverTransform"
           [style.zIndex]="i"
           [style.animationDelay.ms]="i * 60"
         >
@@ -26,12 +27,28 @@ import { PlayingCardComponent } from '../playing-card/playing-card.component';
       bottom: 0;
       left: 50%;
       transform-origin: 50% 130%;
+      transform: var(--fan-transform);
       transition: transform 360ms cubic-bezier(0.34, 1.56, 0.64, 1);
-      animation: pp-fade-up 600ms ease both;
+      animation: pp-fan-in 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
     }
     .fanned-slot:hover {
       z-index: 99 !important;
-      transform: var(--hover-transform, translateY(-8px)) !important;
+      transform: var(--fan-hover-transform) !important;
+    }
+
+    @keyframes pp-fan-in {
+      from {
+        opacity: 0;
+        transform: var(--fan-transform) translateY(24px) scale(0.94);
+      }
+      60% {
+        opacity: 1;
+        transform: var(--fan-transform) translateY(-6px) scale(1.02);
+      }
+      to {
+        opacity: 1;
+        transform: var(--fan-transform);
+      }
     }
   `,
 })
@@ -52,6 +69,7 @@ export class FannedDeckComponent {
       return {
         value,
         transform: `translateX(-50%) rotate(${angle}deg) translateY(-${this.radius() * 0.04}px)`,
+        hoverTransform: `translateX(-50%) rotate(${angle}deg) translateY(-${this.radius() * 0.09}px) scale(1.04)`,
       };
     });
   });
