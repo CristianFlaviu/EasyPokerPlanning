@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(dotnet new sln -n PokerPlanning -o backend)",
+      "PowerShell(dotnet new classlib -n PokerPlanning.Domain -o backend/src/PokerPlanning.Domain -f net10.0)",
+      "PowerShell(dotnet new classlib -n PokerPlanning.Application -o backend/src/PokerPlanning.Application -f net10.0)",
+      "PowerShell(dotnet new classlib -n PokerPlanning.Infrastructure -o backend/src/PokerPlanning.Infrastructure -f net10.0)",
+      "PowerShell(dotnet new web -n PokerPlanning.Api -o backend/src/PokerPlanning.Api -f net10.0)",
+      "PowerShell(dotnet new aspire-apphost -n PokerPlanning.AppHost -o backend/src/PokerPlanning.AppHost)",
+      "PowerShell(dotnet new aspire-servicedefaults -n PokerPlanning.ServiceDefaults -o backend/src/PokerPlanning.ServiceDefaults)",
+      "PowerShell(dotnet sln backend/PokerPlanning.sln add backend/src/PokerPlanning.Domain/PokerPlanning.Domain.csproj backend/src/PokerPlanning.Application/PokerPlanning.Application.csproj backend/src/PokerPlanning.Infrastructure/PokerPlanning.Infrastructure.csproj backend/src/PokerPlanning.Api/PokerPlanning.Api.csproj backend/src/PokerPlanning.AppHost/PokerPlanning.AppHost.csproj backend/src/PokerPlanning.ServiceDefaults/PokerPlanning.ServiceDefaults.csproj)",
+      "PowerShell(dotnet sln backend/PokerPlanning.slnx add backend/src/PokerPlanning.Domain/PokerPlanning.Domain.csproj backend/src/PokerPlanning.Application/PokerPlanning.Application.csproj backend/src/PokerPlanning.Infrastructure/PokerPlanning.Infrastructure.csproj backend/src/PokerPlanning.Api/PokerPlanning.Api.csproj backend/src/PokerPlanning.AppHost/PokerPlanning.AppHost.csproj backend/src/PokerPlanning.ServiceDefaults/PokerPlanning.ServiceDefaults.csproj)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Application reference backend/src/PokerPlanning.Domain)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Infrastructure reference backend/src/PokerPlanning.Application)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Infrastructure reference backend/src/PokerPlanning.Domain)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Api reference backend/src/PokerPlanning.Application)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Api reference backend/src/PokerPlanning.Infrastructure)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Api reference backend/src/PokerPlanning.ServiceDefaults)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.AppHost reference backend/src/PokerPlanning.Api)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Application package MediatR)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Application package FluentValidation)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Application package FluentValidation.DependencyInjectionExtensions)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Infrastructure package Microsoft.EntityFrameworkCore)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Infrastructure package Microsoft.EntityFrameworkCore.Design)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Infrastructure package Npgsql.EntityFrameworkCore.PostgreSQL)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Infrastructure package StackExchange.Redis)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.AppHost package Aspire.Hosting.PostgreSQL)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.AppHost package Aspire.Hosting.Redis)",
+      "PowerShell(Move-Item frontend/CLAUDE.md frontend-CLAUDE.md.tmp)",
+      "PowerShell(npx --yes @angular/cli@21 new poker-planning-frontend --directory=frontend --style=scss --ssr=false --routing --zoneless --skip-git --package-manager=npm --defaults)",
+      "PowerShell(Move-Item frontend-CLAUDE.md.tmp frontend/CLAUDE.md)",
+      "PowerShell(dotnet build backend/PokerPlanning.slnx)"
+    ]
+  }
+}

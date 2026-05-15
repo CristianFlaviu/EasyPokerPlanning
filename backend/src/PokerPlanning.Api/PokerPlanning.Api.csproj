@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\PokerPlanning.Application\PokerPlanning.Application.csproj" />
+    <ProjectReference Include="..\PokerPlanning.Infrastructure\PokerPlanning.Infrastructure.csproj" />
+    <ProjectReference Include="..\PokerPlanning.ServiceDefaults\PokerPlanning.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,20 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.3.2">
+
+  <ItemGroup>
+    <ProjectReference Include="..\PokerPlanning.Api\PokerPlanning.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.3.2" />
+    <PackageReference Include="Aspire.Hosting.Redis" Version="13.3.2" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>b98940ac-303e-4cf0-b9a9-666c03418649</UserSecretsId>
+  </PropertyGroup>
+
+</Project>
