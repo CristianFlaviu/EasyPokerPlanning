@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(dotnet build backend/PokerPlanning.slnx 2>&1)",
+      "PowerShell(dotnet build backend/src/PokerPlanning.AppHost 2>&1)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Api package Scalar.AspNetCore 2>&1)"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+.lobby {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem;
+
+  &__card {
+    width: 100%;
+    max-width: 30rem;
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+}

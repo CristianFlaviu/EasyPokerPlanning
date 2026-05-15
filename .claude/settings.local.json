@@ -29,7 +29,17 @@
       "PowerShell(Move-Item frontend/CLAUDE.md frontend-CLAUDE.md.tmp)",
       "PowerShell(npx --yes @angular/cli@21 new poker-planning-frontend --directory=frontend --style=scss --ssr=false --routing --zoneless --skip-git --package-manager=npm --defaults)",
       "PowerShell(Move-Item frontend-CLAUDE.md.tmp frontend/CLAUDE.md)",
-      "PowerShell(dotnet build backend/PokerPlanning.slnx)"
+      "PowerShell(dotnet build backend/PokerPlanning.slnx)",
+      "PowerShell(dotnet build backend/src/PokerPlanning.Application 2>&1)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Infrastructure package BCrypt.Net-Next)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Infrastructure package Microsoft.Extensions.DependencyInjection.Abstractions)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Infrastructure package Microsoft.Extensions.Configuration.Abstractions)",
+      "PowerShell(dotnet build backend/src/PokerPlanning.Infrastructure 2>&1)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Api package Aspire.Npgsql.EntityFrameworkCore.PostgreSQL)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Api package Aspire.StackExchange.Redis)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Api package Microsoft.AspNetCore.OpenApi)",
+      "PowerShell(dotnet build backend/src/PokerPlanning.Api 2>&1)",
+      "PowerShell(dotnet add backend/src/PokerPlanning.Api package Microsoft.EntityFrameworkCore.Relational --version 10.0.8 2>&1)"
     ]
   }
 }

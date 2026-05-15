@@ -11,6 +11,7 @@ TestResults/
 [Rr]elease/
 artifacts/
 *.pdb
+*.lscache
 
 # Aspire
 **/aspire-manifest.json

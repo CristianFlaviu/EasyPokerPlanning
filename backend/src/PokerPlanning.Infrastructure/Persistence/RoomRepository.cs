@@ -1,0 +1,16 @@
+using Microsoft.EntityFrameworkCore;
+using PokerPlanning.Application.Abstractions.Persistence;
+using PokerPlanning.Domain.Rooms;
+
+namespace PokerPlanning.Infrastructure.Persistence;
+
+public sealed class RoomRepository(PokerPlanningDbContext db) : IRoomRepository
+{
+    public Task<Room?> GetByIdAsync(RoomId id, CancellationToken ct) =>
+        db.Rooms.FirstOrDefaultAsync(r => r.Id == id, ct);
+
+    public async Task AddAsync(Room room, CancellationToken ct) =>
+        await db.Rooms.AddAsync(room, ct);
+
+    public Task SaveChangesAsync(CancellationToken ct) => db.SaveChangesAsync(ct);
+}

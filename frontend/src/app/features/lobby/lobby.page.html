@@ -1,0 +1,39 @@
+<section class="lobby">
+  <mat-card class="lobby__card">
+    <mat-card-header>
+      <mat-card-title>Create a planning room</mat-card-title>
+      <mat-card-subtitle>Share the link with your team to start estimating.</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="lobby__form">
+        <mat-form-field appearance="outline">
+          <mat-label>Room name</mat-label>
+          <input matInput formControlName="name" maxlength="80" autocomplete="off" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Your display name</mat-label>
+          <input matInput formControlName="ownerDisplayName" maxlength="40" autocomplete="off" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Password (optional)</mat-label>
+          <input matInput type="password" formControlName="password" autocomplete="new-password" />
+        </mat-form-field>
+
+        <button
+          mat-flat-button
+          color="primary"
+          type="submit"
+          [disabled]="form.invalid || submitting()"
+        >
+          @if (submitting()) {
+            Creating…
+          } @else {
+            Create room
+          }
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</section>
