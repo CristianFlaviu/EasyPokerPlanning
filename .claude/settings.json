@@ -3,7 +3,10 @@
     "allow": [
       "PowerShell(dotnet build backend/PokerPlanning.slnx 2>&1)",
       "PowerShell(dotnet build backend/src/PokerPlanning.AppHost 2>&1)",
-      "PowerShell(dotnet add backend/src/PokerPlanning.Api package Scalar.AspNetCore 2>&1)"
+      "PowerShell(dotnet add backend/src/PokerPlanning.Api package Scalar.AspNetCore 2>&1)",
+      "Bash(cd c:/Repos/EasyPokerPlanning/frontend/src/app && find features core -type f | head -40 && echo '---routes---' && cat app.routes.ts && echo '---styles---' && find ../.. -maxdepth 3 -name '*.scss' -not -path '*/node_modules/*' | head)",
+      "Read(//c/Repos/**)",
+      "Bash(npm run *)"
     ]
   }
 }

@@ -1,20 +1,23 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { AppBarComponent } from '../../shared/app-bar/app-bar.component';
+import { FannedDeckComponent } from '../../shared/fanned-deck/fanned-deck.component';
 import { RoomApiService } from './room-api.service';
 
 @Component({
   selector: 'pp-lobby-page',
   imports: [
     ReactiveFormsModule,
-    MatCardModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
+    RouterLink,
+    AppBarComponent,
+    FannedDeckComponent,
   ],
   templateUrl: './lobby.page.html',
   styleUrl: './lobby.page.scss',

@@ -1,46 +1,74 @@
-<section class="history">
-  <mat-card>
-    <mat-card-header>
-      <mat-card-title>History</mat-card-title>
-      <mat-card-subtitle>Completed rounds for rooms you joined</mat-card-subtitle>
-    </mat-card-header>
-    <mat-card-content>
-      <mat-list>
-        @for (room of rooms(); track room.id) {
-          <mat-list-item>
-            <span matListItemTitle>{{ room.name }}</span>
-            <span matListItemLine>
-              {{ room.completedRoundCount }} completed rounds
-            </span>
-            <button mat-button type="button" (click)="selectRoom(room.id)">View</button>
-            <a mat-button [routerLink]="['/room', room.id]">Open</a>
-          </mat-list-item>
-        } @empty {
-          <mat-list-item>No room history yet</mat-list-item>
-        }
-      </mat-list>
-    </mat-card-content>
-  </mat-card>
+<pp-app-bar>
+  <a mat-stroked-button routerLink="/">
+    <mat-icon>arrow_back</mat-icon> Back to lobby
+  </a>
+</pp-app-bar>
 
-  @if (selectedRoomId()) {
-    <mat-card>
-      <mat-card-header>
-        <mat-card-title>Completed rounds</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <mat-list>
-          @for (round of rounds(); track round.id) {
-            <mat-list-item>
-              <span matListItemTitle>{{ round.title ?? 'Untitled round' }}</span>
-              <span matListItemLine>
-                Final: {{ round.finalEstimate ?? 'none' }} · {{ round.votes.length }} votes
-              </span>
-            </mat-list-item>
-          } @empty {
-            <mat-list-item>No completed rounds</mat-list-item>
+<main class="history">
+  @if (rooms().length === 0) {
+    <section class="history__empty pp-fade-up">
+      <div class="history__empty-stack">
+        <div class="ghost ghost--1">?</div>
+        <div class="ghost ghost--2">?</div>
+        <div class="ghost ghost--3">?</div>
+      </div>
+      <h2>No rounds yet</h2>
+      <p>Rooms you join will appear here. Finished rounds are kept locally so you can look them up later.</p>
+      <a mat-flat-button color="primary" routerLink="/" class="history__cta">Create a room →</a>
+    </section>
+  } @else {
+    <div class="history__layout">
+      <aside class="history__rooms pp-fade-up">
+        <header>
+          <h3>Your rooms</h3>
+          <span class="pp-chip">{{ rooms().length }}</span>
+        </header>
+        <ul>
+          @for (room of rooms(); track room.id) {
+            <li
+              [class.is-active]="selectedRoomId() === room.id"
+              (click)="selectRoom(room.id)"
+            >
+              <div class="room-name">{{ room.name }}</div>
+              <div class="room-meta">{{ room.completedRoundCount }} completed rounds</div>
+            </li>
           }
-        </mat-list>
-      </mat-card-content>
-    </mat-card>
+        </ul>
+      </aside>
+
+      <section class="history__rounds pp-fade-up">
+        @if (selectedRoom(); as r) {
+          <header>
+            <div>
+              <div class="history__rounds-meta">r/{{ r.id }}</div>
+              <h2>{{ r.name }}</h2>
+              <p class="muted">{{ r.completedRoundCount }} completed rounds</p>
+            </div>
+            <a mat-stroked-button [routerLink]="['/room', r.id]">
+              Open room <mat-icon>arrow_forward</mat-icon>
+            </a>
+          </header>
+
+          @if (rounds().length === 0) {
+            <div class="history__no-rounds">No completed rounds in this room yet.</div>
+          } @else {
+            <ul class="rounds-list">
+              @for (round of rounds(); track round.id) {
+                <li class="pp-fade-up">
+                  <pp-playing-card
+                    size="micro"
+                    [value]="round.finalEstimate ?? '?'"
+                  />
+                  <div class="round-info">
+                    <div class="round-title">{{ round.title ?? 'Untitled round' }}</div>
+                    <div class="round-meta">{{ round.votes.length }} votes</div>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        }
+      </section>
+    </div>
   }
-</section>
+</main>

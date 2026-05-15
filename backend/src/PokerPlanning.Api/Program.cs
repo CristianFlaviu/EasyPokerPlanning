@@ -17,7 +17,7 @@ builder.AddRedisClient("redis");
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure();
 builder.Services.AddSignalR();
-builder.Services.AddScoped<IRoomNotifier, RoomNotifier>();
+builder.Services.AddSingleton<IRoomNotifier, RoomNotifier>();
 
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();

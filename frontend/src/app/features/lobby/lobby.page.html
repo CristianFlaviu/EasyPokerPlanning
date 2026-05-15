@@ -1,39 +1,53 @@
-<section class="lobby">
-  <mat-card class="lobby__card">
-    <mat-card-header>
-      <mat-card-title>Create a planning room</mat-card-title>
-      <mat-card-subtitle>Share the link with your team to start estimating.</mat-card-subtitle>
-    </mat-card-header>
-    <mat-card-content>
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="lobby__form">
-        <mat-form-field appearance="outline">
-          <mat-label>Room name</mat-label>
-          <input matInput formControlName="name" maxlength="80" autocomplete="off" />
-        </mat-form-field>
+<pp-app-bar>
+  <a mat-stroked-button routerLink="/history">History</a>
+  <a mat-flat-button color="primary" routerLink="/">Join by link</a>
+</pp-app-bar>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Your display name</mat-label>
-          <input matInput formControlName="ownerDisplayName" maxlength="40" autocomplete="off" />
-        </mat-form-field>
+<main class="lobby">
+  <section class="lobby__hero">
+    <pp-fanned-deck [spread]="10" [height]="200" />
+    <div class="lobby__copy pp-fade-up">
+      <span class="pp-chip pp-chip--accent">Real-time · Anonymous · Free</span>
+      <h1>Estimate, together.</h1>
+      <p>Planning poker for agile teams. Spin up a room, share a link, vote on Fibonacci cards, reveal together.</p>
+    </div>
+  </section>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Password (optional)</mat-label>
-          <input matInput type="password" formControlName="password" autocomplete="new-password" />
-        </mat-form-field>
+  <section class="lobby__panel pp-fade-up">
+    <header class="lobby__panel-head">
+      <h2>Create a planning room</h2>
+      <p>Share the link with your team to start estimating.</p>
+    </header>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="lobby__form">
+      <mat-form-field appearance="outline">
+        <mat-label>Room name</mat-label>
+        <input matInput formControlName="name" maxlength="80" autocomplete="off" placeholder="Sprint 42 estimation" />
+      </mat-form-field>
 
-        <button
-          mat-flat-button
-          color="primary"
-          type="submit"
-          [disabled]="form.invalid || submitting()"
-        >
-          @if (submitting()) {
-            Creating…
-          } @else {
-            Create room
-          }
-        </button>
-      </form>
-    </mat-card-content>
-  </mat-card>
-</section>
+      <mat-form-field appearance="outline">
+        <mat-label>Your display name</mat-label>
+        <input matInput formControlName="ownerDisplayName" maxlength="40" autocomplete="off" placeholder="Anna K." />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Password (optional)</mat-label>
+        <input matInput type="password" formControlName="password" autocomplete="new-password" placeholder="Leave blank for open room" />
+      </mat-form-field>
+
+      <button
+        mat-flat-button
+        color="primary"
+        type="submit"
+        class="lobby__submit"
+        [disabled]="form.invalid || submitting()"
+      >
+        @if (submitting()) {
+          <span class="dot-pulse">Creating</span>
+        } @else {
+          Create room →
+        }
+      </button>
+    </form>
+    <footer class="lobby__foot">Anonymous · No accounts · Nothing tracked.</footer>
+  </section>
+</main>
