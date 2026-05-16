@@ -113,7 +113,7 @@
 
             <div class="room__felt">
               @if (!currentRound() && canModerate()) {
-                <form (ngSubmit)="startRound()" class="room__start">
+                <form (submit)="$event.preventDefault(); startRound()" class="room__start">
                   <mat-form-field appearance="outline" subscriptSizing="dynamic">
                     <mat-label>Round title</mat-label>
                     <input matInput [formControl]="roundTitle" maxlength="200" />

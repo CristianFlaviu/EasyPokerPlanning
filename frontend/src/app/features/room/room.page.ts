@@ -218,9 +218,18 @@ export class RoomPage {
     const roomId = this.roomId();
     if (!roomId) return;
     const title = this.roundTitle.value.trim();
+    const roundTitle = title.length > 0 ? title : null;
     this.api
-      .startRound(roomId, { title: title.length > 0 ? title : null })
-      .subscribe(() => this.roundTitle.setValue(''));
+      .startRound(roomId, { title: roundTitle })
+      .subscribe((response) => {
+        this.signalr.setCurrentRound({
+          id: response.roundId,
+          title: roundTitle,
+          phase: 'Voting',
+          votes: [],
+        });
+        this.roundTitle.setValue('');
+      });
   }
 
   protected submitVote(card: Card): void {
