@@ -16,6 +16,7 @@ artifacts/
 # Aspire
 **/aspire-manifest.json
 .aspire/
+.codex-run/
 
 # Node / Angular
 node_modules/

@@ -142,7 +142,7 @@ export class RoomPage {
         isModerator: isMod,
         isSelf: p.id === selfId,
         isObserver: p.role === 'Observer',
-        hasVoted: vote?.card != null,
+        hasVoted: vote != null,
         revealedCard,
       };
     });
@@ -156,7 +156,7 @@ export class RoomPage {
   );
 
   protected readonly votedCount = computed(
-    () => this.currentRound()?.votes.filter((v) => v.card != null).length ?? 0,
+    () => this.votedParticipantIds().size,
   );
   protected readonly voterCount = computed(
     () => this.participants().filter((p) => p.role === 'Voter').length,
