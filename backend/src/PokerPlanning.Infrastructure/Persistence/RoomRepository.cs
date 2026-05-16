@@ -1,33 +1,54 @@
 using Microsoft.EntityFrameworkCore;
+using PokerPlanning.Application.Abstractions.LiveState;
 using PokerPlanning.Application.Abstractions.Persistence;
 using PokerPlanning.Domain.Participants;
 using PokerPlanning.Domain.Rooms;
 
 namespace PokerPlanning.Infrastructure.Persistence;
 
-public sealed class RoomRepository(PokerPlanningDbContext db) : IRoomRepository
+public sealed class RoomRepository(
+    PokerPlanningDbContext db,
+    IRoomLiveStateStore liveState) : IRoomRepository
 {
-    public Task<Room?> GetByIdAsync(RoomId id, CancellationToken ct) =>
-        db.Rooms
+    public async Task<Room?> GetByIdAsync(RoomId id, CancellationToken ct)
+    {
+        var room = await db.Rooms
             .Include(r => r.Participants)
             .FirstOrDefaultAsync(r => r.Id == id, ct);
 
-    public Task<Room?> GetByIdWithHistoryAsync(RoomId id, CancellationToken ct) =>
-        db.Rooms
+        if (room is not null)
+            room.RestoreCurrentRound(await liveState.GetCurrentRoundAsync(id, ct));
+
+        return room;
+    }
+
+    public async Task<Room?> GetByIdWithHistoryAsync(RoomId id, CancellationToken ct)
+    {
+        var room = await db.Rooms
             .Include(r => r.Participants)
             .Include(r => r.History)
             .FirstOrDefaultAsync(r => r.Id == id, ct);
+
+        if (room is not null)
+            room.RestoreCurrentRound(await liveState.GetCurrentRoundAsync(id, ct));
+
+        return room;
+    }
 
     public async Task<IReadOnlyList<Room>> ListByParticipantIdAsync(Guid participantId, CancellationToken ct)
     {
         var id = new ParticipantId(participantId);
 
-        return
-        await db.Rooms
+        var rooms = await db.Rooms
             .Include(r => r.Participants)
             .Include(r => r.History)
-            .Where(r => r.Participants.Any(p => p.Id == id))
             .ToListAsync(ct);
+
+        return rooms
+            .Where(r =>
+                r.Participants.Any(p => p.Id == id)
+                || r.History.Any(round => round.Votes.ContainsKey(id)))
+            .ToList();
     }
 
     public async Task AddAsync(Room room, CancellationToken ct) =>

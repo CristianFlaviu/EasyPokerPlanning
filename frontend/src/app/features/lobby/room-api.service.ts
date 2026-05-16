@@ -121,4 +121,8 @@ export class RoomApiService {
   changeRole(roomId: RoomId, role: ParticipantRole): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/${roomId}/participants/me/role`, { role });
   }
+
+  leaveRoom(roomId: RoomId): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${roomId}/participants/me`);
+  }
 }

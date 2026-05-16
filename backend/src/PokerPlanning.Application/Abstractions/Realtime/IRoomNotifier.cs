@@ -12,6 +12,8 @@ public interface IRoomNotifier
         ParticipantRole role,
         CancellationToken ct);
 
+    Task ParticipantLeftAsync(RoomId roomId, ParticipantId participantId, CancellationToken ct);
+
     Task RoundStartedAsync(RoomId roomId, Guid roundId, string? title, CancellationToken ct);
 
     Task VoteSubmittedAsync(RoomId roomId, Guid roundId, ParticipantId participantId, CancellationToken ct);

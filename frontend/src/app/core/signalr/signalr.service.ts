@@ -17,6 +17,10 @@ interface ParticipantJoinedMessage {
   readonly role: Participant['role'];
 }
 
+interface ParticipantLeftMessage {
+  readonly participantId: string;
+}
+
 interface ModeratorChangedMessage {
   readonly participantId: string;
 }
@@ -122,6 +126,21 @@ export class SignalRService {
         displayName: message.displayName,
         role: message.role,
       });
+    });
+
+    this.connection.on('ParticipantLeft', (message: ParticipantLeftMessage) => {
+      this.participants.update((participants) =>
+        participants.filter((participant) => participant.id !== message.participantId),
+      );
+      this.moderatorIds.update((ids) => ids.filter((id) => id !== message.participantId));
+      this.currentRound.update((round) =>
+        round
+          ? {
+              ...round,
+              votes: round.votes.filter((vote) => vote.participantId !== message.participantId),
+            }
+          : round,
+      );
     });
 
     this.connection.on('RoundStarted', (message: RoundStartedMessage) => {

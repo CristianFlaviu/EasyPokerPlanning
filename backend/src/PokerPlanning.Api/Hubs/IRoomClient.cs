@@ -3,6 +3,7 @@ namespace PokerPlanning.Api.Hubs;
 public interface IRoomClient
 {
     Task ParticipantJoined(ParticipantJoinedMessage participant);
+    Task ParticipantLeft(ParticipantLeftMessage participant);
     Task RoundStarted(RoundStartedMessage round);
     Task VoteSubmitted(VoteSubmittedMessage vote);
     Task VotesRevealed(VotesRevealedMessage votes);
@@ -17,6 +18,8 @@ public sealed record ParticipantJoinedMessage(
     Guid Id,
     string DisplayName,
     string Role);
+
+public sealed record ParticipantLeftMessage(Guid ParticipantId);
 
 public sealed record RoundStartedMessage(
     Guid Id,

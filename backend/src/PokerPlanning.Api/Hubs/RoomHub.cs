@@ -1,19 +1,35 @@
 using Microsoft.AspNetCore.SignalR;
+using PokerPlanning.Application.Abstractions.LiveState;
+using PokerPlanning.Domain.Participants;
+using PokerPlanning.Domain.Rooms;
 
 namespace PokerPlanning.Api.Hubs;
 
-public sealed class RoomHub : Hub<IRoomClient>
+public sealed class RoomHub(IRoomLiveStateStore liveState) : Hub<IRoomClient>
 {
     public async Task JoinRoomGroup(Guid roomId)
     {
-        _ = ResolveParticipantId();
+        var participantId = ResolveParticipantId();
+        await liveState.TrackConnectionAsync(
+            new RoomId(roomId),
+            new ParticipantId(participantId),
+            Context.ConnectionId,
+            Context.ConnectionAborted);
+
         await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(roomId));
     }
 
     public async Task LeaveRoomGroup(Guid roomId)
     {
         _ = ResolveParticipantId();
+        await liveState.RemoveConnectionAsync(Context.ConnectionId, Context.ConnectionAborted);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupName(roomId));
+    }
+
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        await liveState.RemoveConnectionAsync(Context.ConnectionId, CancellationToken.None);
+        await base.OnDisconnectedAsync(exception);
     }
 
     public static string GroupName(Guid roomId) => $"room:{roomId}";

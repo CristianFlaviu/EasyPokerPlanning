@@ -41,6 +41,11 @@ public sealed class Room : AggregateRoot
 
     public bool IsPasswordProtected => PasswordHash is not null;
 
+    public void RestoreCurrentRound(Round? round)
+    {
+        CurrentRound = round;
+    }
+
     public static Result<Room> Create(
         string name,
         PasswordHash? passwordHash,
@@ -227,6 +232,23 @@ public sealed class Room : AggregateRoot
         return Result.Success();
     }
 
+    public Result LeaveRoom(ParticipantId participantId, DateTimeOffset now)
+    {
+        if (participantId == OwnerId)
+            return Result.Failure(RoomErrors.OwnerCannotLeave);
+
+        var participant = _participants.FirstOrDefault(p => p.Id == participantId);
+        if (participant is null)
+            return Result.Failure(RoomErrors.ParticipantNotFound);
+
+        _participants.Remove(participant);
+        _moderatorIds.Remove(participantId);
+        CurrentRound?.RemoveVote(participantId);
+
+        RaiseDomainEvent(new ParticipantLeftEvent(Id, participantId, now));
+        return Result.Success();
+    }
+
     private bool CanModerate(ParticipantId participantId) =>
         OwnerId == participantId || _moderatorIds.Contains(participantId);
 }
@@ -256,4 +278,8 @@ public static class RoomErrors
     public static readonly Error ObserverCannotVote = new(
         "Room.ObserverCannotVote",
         "Observers cannot submit votes.");
+
+    public static readonly Error OwnerCannotLeave = new(
+        "Room.OwnerCannotLeave",
+        "The room owner cannot leave an active room.");
 }

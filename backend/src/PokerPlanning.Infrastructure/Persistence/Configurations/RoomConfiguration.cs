@@ -49,6 +49,8 @@ public sealed class RoomConfiguration : IEntityTypeConfiguration<Room>
                 value => DeserializeParticipantIds(value))
             .Metadata.SetValueComparer(ParticipantIdSetComparer);
 
+        builder.Ignore(r => r.CurrentRound);
+
         builder.OwnsMany(r => r.Participants, pb =>
         {
             pb.ToTable("room_participants");
@@ -75,30 +77,6 @@ public sealed class RoomConfiguration : IEntityTypeConfiguration<Room>
             pb.Property(p => p.JoinedAt)
                 .HasColumnName("joined_at")
                 .IsRequired();
-        });
-
-        builder.OwnsOne(r => r.CurrentRound, rb =>
-        {
-            rb.Property(r => r.Id)
-                .HasColumnName("current_round_id");
-
-            rb.Property(r => r.Title)
-                .HasColumnName("current_round_title")
-                .HasMaxLength(Round.MaxTitleLength);
-
-            rb.Property(r => r.Phase)
-                .HasColumnName("current_round_phase")
-                .HasConversion<int>();
-
-            rb.Property(r => r.StartedAt)
-                .HasColumnName("current_round_started_at");
-
-            rb.Property<Dictionary<ParticipantId, Card>>("_votes")
-                .HasColumnName("current_round_votes")
-                .HasConversion(
-                    votes => SerializeVotes(votes),
-                    value => DeserializeVotes(value))
-                .Metadata.SetValueComparer(VotesComparer);
         });
 
         builder.OwnsMany(r => r.History, hb =>

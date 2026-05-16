@@ -36,6 +36,30 @@ public sealed class Round
         return Result.Success(new Round(Guid.NewGuid(), normalizedTitle, now));
     }
 
+    public static Result<Round> Restore(
+        Guid id,
+        string? title,
+        RoundPhase phase,
+        DateTimeOffset startedAt,
+        IReadOnlyDictionary<ParticipantId, Card> votes)
+    {
+        var normalizedTitle = string.IsNullOrWhiteSpace(title) ? null : title.Trim();
+        if (normalizedTitle?.Length > MaxTitleLength)
+            return Result.Failure<Round>(RoundErrors.InvalidTitle);
+
+        var round = new Round(id, normalizedTitle, startedAt)
+        {
+            Phase = phase
+        };
+
+        foreach (var vote in votes)
+        {
+            round._votes[vote.Key] = vote.Value;
+        }
+
+        return Result.Success(round);
+    }
+
     internal Result SubmitVote(ParticipantId participantId, Card card)
     {
         if (Phase != RoundPhase.Voting)
@@ -43,6 +67,11 @@ public sealed class Round
 
         _votes[participantId] = card;
         return Result.Success();
+    }
+
+    internal void RemoveVote(ParticipantId participantId)
+    {
+        _votes.Remove(participantId);
     }
 
     internal Result Reveal()

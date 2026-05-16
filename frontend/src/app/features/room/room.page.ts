@@ -7,7 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, switchMap, tap } from 'rxjs';
 import { RoomApiService } from '../lobby/room-api.service';
@@ -55,6 +55,7 @@ export class RoomPage {
   private readonly identity = inject(IdentityService);
   private readonly fb = inject(FormBuilder);
   private readonly snack = inject(MatSnackBar);
+  private readonly router = inject(Router);
 
   protected readonly roomId = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('id') ?? '')),
@@ -280,6 +281,18 @@ export class RoomPage {
   protected changeOwnRole(role: ParticipantRole): void {
     const roomId = this.roomId();
     if (roomId) this.api.changeRole(roomId, role).subscribe();
+  }
+
+  protected leaveRoom(): void {
+    const roomId = this.roomId();
+    if (!roomId || this.isOwner()) return;
+
+    this.api.leaveRoom(roomId).subscribe({
+      next: () => {
+        void this.signalr.disconnectFromRoom();
+        void this.router.navigate(['/history']);
+      },
+    });
   }
 
   protected copyShareLink(): void {

@@ -2,7 +2,7 @@
 
 > Living status doc. Any agent (human or AI) reads this after `CLAUDE.md` + `docs/domain-model.md` to know what exists, what's broken, and what's next. Update at the **end of each slice**.
 
-Last updated: 2026-05-15
+Last updated: 2026-05-16
 
 ---
 
@@ -90,42 +90,83 @@ Last updated: 2026-05-15
 - Modernized the shared Angular app footer with a responsive glassy band, stronger brand block, highlight chips, and clearer navigation/focus states
 - Verification: `npm run build` passes with the existing `room.page.scss` style budget warning; Angular dev server responds at `http://127.0.0.1:4200/`
 
+### Redis current-round live state slice
+- Application: added `IRoomLiveStateStore` for current round load/save/clear behavior
+- Domain: added no-event restore paths for rehydrating `Room.CurrentRound` and `Round` from live state
+- Infrastructure: added Redis-backed current round storage, including vote snapshots, phase, title, and start time
+- Infrastructure: `RoomRepository.GetByIdAsync` / `GetByIdWithHistoryAsync` now reattach Redis current round state after loading PostgreSQL room metadata
+- Infrastructure: EF no longer maps `CurrentRound` onto `rooms`; completed round history remains persisted in PostgreSQL
+- Application: start/vote/reveal/reset handlers save current round state to Redis; end-round persists history then clears Redis current round state
+- Verification: `dotnet build backend/PokerPlanning.slnx` passes after stopping the old running API process.
+
+### Redis connection presence cleanup slice
+- Application: expanded `IRoomLiveStateStore` with connection tracking and removal methods
+- Infrastructure: Redis now tracks connection-to-room, room connection sets, and participant connection sets
+- Infrastructure: disconnect/reconnect now updates presence keys without clearing current round state, so page reloads preserve active rounds
+- Api: `RoomHub.JoinRoomGroup`, `LeaveRoomGroup`, and disconnect handling now update Redis presence alongside SignalR group membership
+- Frontend: existing room disconnect flow already invokes `LeaveRoomGroup`, so no client change was needed for explicit room exits
+- Verification: `dotnet build backend/src/PokerPlanning.Api/PokerPlanning.Api.csproj -o .codex-run/build-api` passes
+
+### LeaveRoom slice
+- Domain: `Room.LeaveRoom(...)` removes non-owner participants from the active room, demotes them if needed, and removes their active vote
+- Domain events: `ParticipantLeftEvent`
+- Application: `Features/LeaveRoom/` command, validator, handler, and notification handler
+- Api: `DELETE /rooms/{id}/participants/me`
+- SignalR: typed `ParticipantLeft` event removes seats, moderator ids, and active votes from connected clients
+- Frontend: non-owner users can leave from the room rail and are routed back to history
+- Verification: `dotnet build backend/PokerPlanning.slnx`, `npm run build`, and full `./scripts/smoke-test.ps1 -SkipBuild` pass after resetting the local Aspire Postgres volume
+
+### Runtime E2E smoke after DB reset
+- Reset local Docker volume `pokerplanning.apphost-51b673af0d-postgres-server-data`
+- Full browser smoke passed for create room, SignalR connect, start round, vote, reveal, end round, and history display
+- Smoke artifacts: `.codex-run/smoke-20260516-094417`
+
+### History after leave hardening
+- Infrastructure: `ListByParticipantIdAsync` now includes rooms where the participant appears in completed-round vote history, even if they later leave the active participant list
+- Verification: `dotnet build backend/PokerPlanning.slnx`, `npm run build`, and full `./scripts/smoke-test.ps1 -SkipBuild` pass
+
+### Local API URL verification
+- Verified AppHost + API serves the frontend's configured `http://localhost:5218` API base URL during smoke testing
+- Removed stale runtime blocker about AppHost dynamic API ports
+
+### Room stylesheet budget
+- Moved room page presentation styles from `room.page.scss` into the global stylesheet under a dedicated room page section
+- Kept `room.page.scss` as a small pointer file so Angular's per-component style budget remains effective
+- Verification: `npm run build` passes with no component style budget warning
+
+### EF migration baseline
+- Added `InitialCreate` EF Core migration for the settled PostgreSQL schema
+- Added Infrastructure design-time `PokerPlanningDbContextFactory` so migrations can be generated without running the API startup project
+- Api dev startup now runs `Database.MigrateAsync()` instead of `EnsureCreated()`
+- EF migration history is stored in the `poker` schema alongside the app tables
+- Reset the local Aspire Postgres volume and verified a fresh AppHost startup applies `20260516080150_InitialCreate`
+- Verification: `dotnet build backend/PokerPlanning.slnx` and full `./scripts/smoke-test.ps1 -SkipBuild` pass
+- Smoke artifacts: `.codex-run/smoke-20260516-110634`
+
 ---
 
 ## In progress / blocked
 
-- **Runtime E2E is blocked by stale local Postgres schema.**
-  - AppHost starts and the API was reachable during smoke testing.
-  - `POST /rooms` returned 500 because the existing Aspire Postgres data volume still has the original `poker.rooms` table shape.
-  - Confirmed on 2026-05-15 with `\d poker.rooms`: the table lacks the new round/moderator columns added after the initial CreateRoom slice.
-  - Until migrations exist, local dev needs a database/volume reset before end-to-end verification.
-- **API URL still needs a stable frontend story.**
-  - Frontend `environment.ts` points to `http://localhost:5218`.
-  - AppHost assigns a dynamic proxied API port, so manual local runs may require updating the frontend API URL or running the API directly with valid connection strings.
-  - Longer-term options: add fallback development connection strings, add Angular to AppHost, or generate frontend environment from Aspire.
+No active blockers.
 
 ---
 
 ## Next (priority order)
 
-1. **Redis live state store** — `IRoomLiveStateStore` (Application interface) + Redis impl (Infrastructure). Per backend CLAUDE.md: Postgres = metadata + history; Redis = live round + votes + presence. Aggregates reconstituted from both.
-2. **Runtime E2E smoke test after dev DB reset** — run AppHost + Angular, verify create/join/start/vote/reveal/end/history in browser. Current compile checks pass, but full request flow is blocked by the stale local database schema.
+1. **Pick next v1 product slice** — no implementation blocker is currently tracked.
 
 ---
 
 ## Tech debt (deferred, list out so it doesn't get lost)
 
-- **EF migration baseline** — currently `db.Database.EnsureCreated()` in dev. Replace with first migration once schema settles (post round-lifecycle).
 - **EFCore.Relational version pin** — Api has explicit `10.0.8` pin to resolve conflict with Aspire's transitive `10.0.7`. Drop when Aspire publishes newer compatible version.
-- **`LeaveRoom`** — domain method/command not yet implemented. Add once presence/live-state behavior is clearer.
-- **Runtime verification automation** — add a repeatable smoke script after migrations or a database reset workflow exists.
+- **LeaveRoom observer history semantics** — voters remain discoverable through completed-round votes after leaving; observers who leave without votes still need an explicit historical membership model if that matters.
 
 ---
 
 ## Known issues
 
-- Existing Aspire Postgres data volume is stale and causes `POST /rooms` to return 500 until reset or migrated.
-- End-to-end browser flow remains unverified; backend and frontend compile clean, and command-line smoke reached the API but stopped on stale schema.
+None currently tracked.
 
 ---
 

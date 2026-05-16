@@ -5,13 +5,17 @@ using PokerPlanning.Application;
 using PokerPlanning.Application.Abstractions.Realtime;
 using PokerPlanning.Infrastructure;
 using PokerPlanning.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddNpgsqlDbContext<PokerPlanningDbContext>("postgres");
+builder.AddNpgsqlDbContext<PokerPlanningDbContext>(
+    "postgres",
+    configureDbContextOptions: options => options.UseNpgsql(
+        npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "poker")));
 builder.AddRedisClient("redis");
 
 builder.Services.AddApplication();
@@ -26,7 +30,7 @@ const string AngularDevCors = "AngularDev";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(AngularDevCors, policy => policy
-        .WithOrigins("http://localhost:4200", "http://localhost:4301")
+        .WithOrigins("http://localhost:4200", "http://localhost:4201", "http://localhost:4301")
         .AllowAnyHeader()
         .AllowAnyMethod()
         .AllowCredentials());
@@ -47,7 +51,7 @@ if (app.Environment.IsDevelopment())
 
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<PokerPlanningDbContext>();
-    db.Database.EnsureCreated();
+    await db.Database.MigrateAsync();
 }
 
 app.MapDefaultEndpoints();

@@ -186,6 +186,11 @@
                   <div class="rail-self__role">{{ self.role }}</div>
                 </div>
               </div>
+              @if (!isOwner()) {
+                <button mat-stroked-button class="rail-leave" (click)="leaveRoom()">
+                  <mat-icon>logout</mat-icon> Leave room
+                </button>
+              }
             </section>
           }
 

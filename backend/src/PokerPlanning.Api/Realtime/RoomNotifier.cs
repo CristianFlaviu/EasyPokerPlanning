@@ -25,6 +25,15 @@ public sealed class RoomNotifier(IHubContext<RoomHub, IRoomClient> hubContext) :
             .ParticipantJoined(message);
     }
 
+    public Task ParticipantLeftAsync(RoomId roomId, ParticipantId participantId, CancellationToken ct)
+    {
+        var message = new ParticipantLeftMessage(participantId.Value);
+
+        return hubContext.Clients
+            .Group(RoomHub.GroupName(roomId.Value))
+            .ParticipantLeft(message);
+    }
+
     public Task RoundStartedAsync(RoomId roomId, Guid roundId, string? title, CancellationToken ct)
     {
         var message = new RoundStartedMessage(roundId, title, "Voting");

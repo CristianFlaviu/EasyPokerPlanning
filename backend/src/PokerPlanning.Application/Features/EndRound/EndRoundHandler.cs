@@ -1,4 +1,5 @@
 using MediatR;
+using PokerPlanning.Application.Abstractions.LiveState;
 using PokerPlanning.Application.Abstractions.Persistence;
 using PokerPlanning.Application.Abstractions.Time;
 using PokerPlanning.Domain.Common;
@@ -9,6 +10,7 @@ namespace PokerPlanning.Application.Features.EndRound;
 
 public sealed class EndRoundHandler(
     IRoomRepository rooms,
+    IRoomLiveStateStore liveState,
     IClock clock)
     : IRequestHandler<EndRoundCommand, Result>
 {
@@ -33,6 +35,7 @@ public sealed class EndRoundHandler(
             return result;
 
         await rooms.SaveChangesAsync(ct);
+        await liveState.ClearCurrentRoundAsync(room.Id, ct);
         return Result.Success();
     }
 }

@@ -1,4 +1,5 @@
 using MediatR;
+using PokerPlanning.Application.Abstractions.LiveState;
 using PokerPlanning.Application.Abstractions.Persistence;
 using PokerPlanning.Application.Abstractions.Time;
 using PokerPlanning.Domain.Common;
@@ -9,6 +10,7 @@ namespace PokerPlanning.Application.Features.RevealVotes;
 
 public sealed class RevealVotesHandler(
     IRoomRepository rooms,
+    IRoomLiveStateStore liveState,
     IClock clock)
     : IRequestHandler<RevealVotesCommand, Result>
 {
@@ -22,6 +24,7 @@ public sealed class RevealVotesHandler(
         if (result.IsFailure)
             return result;
 
+        await liveState.SaveCurrentRoundAsync(room.Id, room.CurrentRound!, ct);
         await rooms.SaveChangesAsync(ct);
         return Result.Success();
     }
