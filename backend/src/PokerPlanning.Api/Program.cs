@@ -18,7 +18,7 @@ builder.AddNpgsqlDbContext<PokerPlanningDbContext>(
         npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "poker")));
 builder.AddRedisClient("redis");
 
-builder.Services.AddApplication();
+builder.Services.AddApplication(builder.Configuration["MediatR:LicenseKey"]);
 builder.Services.AddInfrastructure();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<IRoomNotifier, RoomNotifier>();
@@ -26,11 +26,16 @@ builder.Services.AddSingleton<IRoomNotifier, RoomNotifier>();
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 
-const string AngularDevCors = "AngularDev";
+const string AppCors = "AppCors";
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>()
+    ?? new[] { "http://localhost:4200", "http://localhost:4201", "http://localhost:4301" };
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(AngularDevCors, policy => policy
-        .WithOrigins("http://localhost:4200", "http://localhost:4201", "http://localhost:4301")
+    options.AddPolicy(AppCors, policy => policy
+        .WithOrigins(allowedOrigins)
         .AllowAnyHeader()
         .AllowAnyMethod()
         .AllowCredentials());
@@ -41,15 +46,15 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.MapScalarApiReference(options => options
-        .WithTitle("Poker Planning API")
-        .WithTheme(ScalarTheme.Mars));
-    app.UseCors(AngularDevCors);
+app.MapOpenApi();
+app.MapScalarApiReference(options => options
+    .WithTitle("Poker Planning API")
+    .WithTheme(ScalarTheme.Mars));
 
-    using var scope = app.Services.CreateScope();
+app.UseCors(AppCors);
+
+using (var scope = app.Services.CreateScope())
+{
     var db = scope.ServiceProvider.GetRequiredService<PokerPlanningDbContext>();
     await db.Database.MigrateAsync();
 }

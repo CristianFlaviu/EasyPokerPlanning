@@ -1,0 +1,37 @@
+# Fly.io config for PokerPlanning.Api
+# Run from backend/: `fly launch --no-deploy` then edit, then `fly deploy`
+# App name must be globally unique — change before first launch.
+
+app = "poker-planning-api"
+primary_region = "fra"  # Frankfurt; pick closest. Options: fra, ams, lhr, iad, sjc...
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  ASPNETCORE_ENVIRONMENT = "Production"
+  ASPNETCORE_URLS = "http://+:8080"
+  # Connection strings injected via `fly secrets set`:
+  #   ConnectionStrings__postgres="Host=...;Database=...;Username=...;Password=...;SslMode=Require"
+  #   ConnectionStrings__redis="rediss://default:<pw>@<host>:<port>"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"      # save free hours when idle
+  auto_start_machines = true
+  min_machines_running = 0          # set 1 to avoid cold starts (uses more free hours)
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+# SignalR needs sticky sessions only when scaled out; single VM is fine for free tier.
+# If you scale to 2+ VMs, add a Redis backplane via `AddStackExchangeRedis()` on AddSignalR.
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512   # 256 is tight for .NET; 512 stays in free allowance with 1 VM

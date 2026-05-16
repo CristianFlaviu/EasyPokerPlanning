@@ -1,0 +1,15 @@
+**/bin/
+**/obj/
+**/.vs/
+**/*.user
+**/*.lscache
+**/.idea/
+**/.vscode/
+**/node_modules/
+**/dist/
+**/.git/
+**/.gitignore
+**/Dockerfile
+**/.dockerignore
+**/appsettings.Development.json
+src/PokerPlanning.AppHost/

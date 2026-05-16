@@ -16,7 +16,22 @@
       "mcp__plugin_playwright_playwright__browser_network_requests",
       "mcp__plugin_playwright_playwright__browser_console_messages",
       "mcp__plugin_playwright_playwright__browser_tabs",
-      "mcp__plugin_playwright_playwright__browser_type"
+      "mcp__plugin_playwright_playwright__browser_type",
+      "Bash(dotnet build *)",
+      "Bash(docker version *)",
+      "Bash(docker compose *)",
+      "Bash(curl -s -o /dev/null -w \"frontend: %{http_code}\\\\n\" http://localhost:8080/)",
+      "Bash(curl -s -o /dev/null -w \"api health: %{http_code}\\\\n\" http://localhost:5080/health)",
+      "Bash(curl -s -o /dev/null -w \"openapi: %{http_code}\\\\n\" http://localhost:5080/openapi/v1.json)",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" -X POST http://localhost:5080/rooms -H \"Content-Type: application/json\" -d '{\"name\":\"smoke\",\"ownerDisplayName\":\"caveman\"}')",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" -X POST http://localhost:5080/rooms -H \"Content-Type: application/json\" -d '{\"name\":\"smoke\",\"ownerDisplayName\":\"caveman\",\"ownerParticipantId\":\"11111111-1111-1111-1111-111111111111\"}')",
+      "Bash(curl -s -o /dev/null -w \"frontend index: %{http_code}\\\\n\" http://localhost:8080/)",
+      "Bash(curl -s http://localhost:8080/)",
+      "Bash(curl -s -o /dev/null -w \"spa fallback /room/x: %{http_code}\\\\n\" http://localhost:8080/room/abc)",
+      "Bash(dotnet user-secrets *)",
+      "Read(//c/c/Repos/EasyPokerPlanning/**)",
+      "Bash(grep -E \"^\\\\.env$|^\\\\.env\\\\b\")",
+      "Bash(git check-ignore *)"
     ]
   }
 }
