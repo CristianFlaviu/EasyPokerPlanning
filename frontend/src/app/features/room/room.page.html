@@ -1,15 +1,23 @@
 <pp-app-bar>
   @if (room(); as r) {
-    <span class="pp-chip">r/{{ roomId() }}</span>
-    <span
-      class="pp-chip"
-      [class.pp-chip--ok]="connectionState() === 'connected'"
-      [class.pp-chip--warn]="connectionState() === 'connecting'"
-    >{{ connectionState() }}</span>
-    <button mat-stroked-button (click)="copyShareLink()" matTooltip="Copy room link">
-      <mat-icon>link</mat-icon> Share
+    @if (connectionState() !== 'connected') {
+      <span
+        class="pp-chip"
+        [class.pp-chip--warn]="connectionState() === 'connecting'"
+        matTooltip="Live room updates are reconnecting"
+      >{{ connectionState() === 'connecting' ? 'Reconnecting' : 'Offline' }}</span>
+    }
+    <button
+      mat-flat-button
+      class="app-bar-action app-bar-action--primary"
+      (click)="openShareDialog()"
+      matTooltip="Invite players"
+    >
+      <mat-icon>person_add</mat-icon> Share
     </button>
-    <a mat-button routerLink="/history">History</a>
+    <a mat-stroked-button class="app-bar-action" routerLink="/history">
+      <mat-icon>history</mat-icon> History
+    </a>
   }
 </pp-app-bar>
 
@@ -63,6 +71,17 @@
             }
           </header>
 
+          @if (actionCue(); as cue) {
+            <div
+              class="room__cue"
+              [class.room__cue--action]="cue.tone === 'action'"
+              [class.room__cue--success]="cue.tone === 'success'"
+            >
+              <mat-icon>{{ cue.icon }}</mat-icon>
+              <span>{{ cue.text }}</span>
+            </div>
+          }
+
           @if (isRevealed() && stats(); as s) {
             <div class="room__stats pp-pop">
               <div class="stat">
@@ -74,14 +93,30 @@
                 <div class="stat__value">{{ s.median }}</div>
               </div>
               <div class="stat">
-                <div class="stat__label">Spread</div>
+                <div class="stat__label">Range</div>
                 <div class="stat__value">{{ s.spread }}</div>
               </div>
               <div class="stat">
-                <div class="stat__label">Consensus</div>
-                <div class="stat__value">{{ s.consensus }}</div>
+                <div class="stat__label">Agreement</div>
+                <div class="stat__value">{{ s.agreement }}</div>
               </div>
             </div>
+
+            @if (s.distribution.length > 0) {
+              <div class="room__distribution pp-fade-up">
+                @for (item of s.distribution; track item.card) {
+                  <div class="dist" [class.dist--leader]="item.isLeader">
+                    <div class="dist__head">
+                      <span class="dist__card">{{ item.card }}</span>
+                      <span>{{ item.count }} vote{{ item.count === 1 ? '' : 's' }}</span>
+                    </div>
+                    <div class="dist__bar" aria-hidden="true">
+                      <span [style.width.%]="item.percent"></span>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
           }
 
           <div class="room__table">
@@ -120,10 +155,11 @@
                   </mat-form-field>
                   <button mat-flat-button color="primary" type="submit">Start round</button>
                 </form>
-              } @else if (isRevealed() && modeCard()) {
-                <div class="room__suggested">
-                  <div class="room__suggested-label">SUGGESTED ESTIMATE</div>
-                  <div class="room__suggested-value">{{ modeCard() }}</div>
+              } @else if (isRevealed() && stats(); as s) {
+                <div class="room__suggested" [class.room__suggested--tie]="s.hasTie">
+                  <div class="room__suggested-label">{{ s.resultLabel }}</div>
+                  <div class="room__suggested-value">{{ s.resultValue }}</div>
+                  <p>{{ s.resultHelp }}</p>
                 </div>
               } @else if (currentRound() && canModerate()) {
                 <button mat-flat-button color="primary" class="room__reveal" (click)="revealVotes()">
@@ -226,16 +262,17 @@
                     Reveal votes
                   </button>
                 } @else {
+                  <p class="rail-hint">Choose a final estimate below, reset for another vote, or end without one.</p>
                   <div class="rail-row">
                     <button mat-stroked-button (click)="resetRound()">
                       <mat-icon>refresh</mat-icon> Reset
                     </button>
                     <button mat-flat-button color="primary" (click)="endRound()">
-                      End round
+                      End without estimate
                     </button>
                   </div>
                   <div class="rail-end-as">
-                    <div class="rail-end-as__label">END ROUND AS</div>
+                    <div class="rail-end-as__label">FINAL ESTIMATE</div>
                     <div class="rail-end-as__row">
                       @for (card of deck; track card) {
                         <button

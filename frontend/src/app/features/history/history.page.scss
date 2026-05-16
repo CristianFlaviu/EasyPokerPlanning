@@ -1,13 +1,14 @@
 .history {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 24px;
+  padding: clamp(16px, 3vw, 24px);
 
   &__layout {
     display: grid;
     grid-template-columns: 340px 1fr;
     gap: 24px;
     align-items: start;
+    min-width: 0;
   }
 
   &__rooms {
@@ -17,6 +18,7 @@
     border: 1px solid oklch(84% 0.03 250 / 0.9);
     box-shadow: var(--pp-shadow-md);
     overflow: hidden;
+    min-width: 0;
 
     header {
       display: flex;
@@ -45,35 +47,22 @@
       padding: 12px 14px;
       border-radius: 10px;
       cursor: pointer;
-      transition: background 180ms ease, transform 180ms ease;
-      position: relative;
-
-      &::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 12px;
-        bottom: 12px;
-        width: 3px;
-        border-radius: 3px;
-        background: transparent;
-        transition: background 180ms ease;
-      }
+      border-left: 3px solid transparent;
 
       &:hover {
         background: var(--pp-paper-2);
-        transform: translateX(2px);
       }
 
       &.is-active {
+        border-left-color: var(--pp-accent);
         background: var(--pp-accent-soft);
-        &::before { background: var(--pp-accent); }
       }
 
       .room-name {
         font-weight: 600;
         font-size: 14px;
         color: var(--pp-ink);
+        overflow-wrap: anywhere;
       }
       .room-meta {
         margin-top: 2px;
@@ -91,21 +80,28 @@
     border: 1px solid oklch(84% 0.03 250 / 0.9);
     box-shadow: var(--pp-shadow-md);
     padding: 24px;
+    min-width: 0;
 
     header {
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
+      flex-wrap: wrap;
       gap: 16px;
       margin-bottom: 20px;
       padding-bottom: 20px;
       border-bottom: 1px solid oklch(84% 0.03 250);
+
+      > div {
+        min-width: 0;
+      }
 
       h2 {
         margin: 4px 0 4px;
         font-size: 24px;
         font-weight: 700;
         letter-spacing: 0;
+        overflow-wrap: anywhere;
       }
     }
 
@@ -117,6 +113,10 @@
     font-size: 11px;
     color: var(--pp-accent);
     letter-spacing: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__no-rounds {
@@ -198,7 +198,11 @@
   }
 
   .round-info { flex: 1; }
-  .round-title { font-weight: 600; font-size: 15px; }
+  .round-title {
+    font-weight: 600;
+    font-size: 15px;
+    overflow-wrap: anywhere;
+  }
   .round-meta {
     margin-top: 2px;
     font-family: var(--pp-mono);
@@ -209,4 +213,17 @@
 
 @media (max-width: 860px) {
   .history__layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .history { padding: 12px; }
+  .history__rooms header { padding: 16px; }
+  .history__rounds { padding: 18px 16px; }
+  .history__rounds header { align-items: stretch; }
+  .history__rounds header a { width: 100%; justify-content: center; }
+  .rounds-list li {
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+  }
 }

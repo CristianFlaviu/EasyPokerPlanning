@@ -1,0 +1,65 @@
+.share-dialog {
+  width: min(520px, 100%);
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px 24px 8px;
+
+    h2 {
+      margin: 0;
+      padding: 0;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 6px 0 0;
+      color: var(--pp-ink-soft);
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  &__field {
+    display: grid;
+    gap: 8px;
+
+    span {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--pp-ink-soft);
+    }
+
+    input {
+      width: 100%;
+      border: 1.5px solid var(--pp-accent-line);
+      border-radius: var(--pp-radius-sm);
+      padding: 13px 14px;
+      color: var(--pp-ink);
+      background: white;
+      font: 600 14px var(--pp-font);
+      outline: none;
+
+      &:focus {
+        border-color: var(--pp-accent);
+        box-shadow: 0 0 0 3px var(--pp-accent-soft);
+      }
+    }
+  }
+}
+
+mat-dialog-content {
+  padding: 20px 24px 18px !important;
+}
+
+mat-dialog-actions {
+  padding: 0 24px 24px !important;
+
+  button {
+    width: 100%;
+  }
+}

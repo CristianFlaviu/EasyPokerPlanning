@@ -154,6 +154,21 @@ Last updated: 2026-05-16
 - Added a shared review guide requiring Browser plugin/skill inspection of the live app before proposing UX/design changes
 - Covered full-product review, lobby, room, history, and alternative v1 flow proposals
 
+### UX polish: mobile layout + revealed-round clarity
+- Frontend room view now shortens long room ids in the app bar, wraps narrow controls, and prevents room stage/start-round/table surfaces from forcing horizontal overflow on mobile
+- Revealed results now distinguish consensus, most common estimate, no clear leader/ties, and no-vote states instead of labeling every leading card as consensus
+- Added a revealed vote distribution display and clearer moderator/voter next-action cues
+- History detail layout now shortens long room ids, wraps headers/actions, and avoids narrow viewport clipping
+- Verification: `npm run build`, `./scripts/smoke-test.ps1 -SkipBuild`, and a 390px mobile rendered check for tied revealed results + history detail passed
+- Smoke artifacts: `.codex-run/smoke-20260516-220140`; mobile artifacts: `.codex-run/mobile-ux-20260516-220252`
+
+### Room navbar share dialog polish
+- Removed the room id chip from the room app bar and hid the healthy SignalR `connected` state; the app bar now only shows connection status when reconnecting/offline
+- Replaced immediate share-link copy with an invite dialog showing the room URL and a copy button
+- Restyled the room app-bar Share and History actions so History reads as a proper navigation button
+- Verification: `npm run build` and targeted rendered checks for desktop share dialog, copy confirmation, clean navbar text, and 390px mobile navbar overflow passed
+- Artifacts: `.codex-run/share-dialog-20260516-221133`
+
 ---
 
 ## In progress / blocked
@@ -164,7 +179,9 @@ No active blockers.
 
 ## Next (priority order)
 
-1. **Pick next v1 product slice** — no implementation blocker is currently tracked.
+1. **History detail polish** — show more useful completed-round detail after the first UX polish slice:
+   - Display vote breakdown with participant names/cards, not only final estimate and vote count.
+   - Consider completed/ended timestamp or duration if already available through the API; avoid schema changes unless intentionally scoped.
 
 ---
 

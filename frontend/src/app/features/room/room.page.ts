@@ -5,7 +5,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -16,6 +16,7 @@ import { IdentityService } from '../../core/identity/identity.service';
 import { Card, FIBONACCI_DECK, ParticipantId, ParticipantRole } from '../../domain/room';
 import { AppBarComponent } from '../../shared/app-bar/app-bar.component';
 import { PlayingCardComponent } from '../../shared/playing-card/playing-card.component';
+import { ShareRoomDialogComponent } from './share-room-dialog.component';
 
 interface Seat {
   readonly id: ParticipantId;
@@ -28,6 +29,35 @@ interface Seat {
   readonly isObserver: boolean;
   readonly hasVoted: boolean;
   readonly revealedCard: Card | null;
+}
+
+interface VoteDistributionItem {
+  readonly card: Card;
+  readonly count: number;
+  readonly percent: number;
+  readonly isLeader: boolean;
+}
+
+interface RevealedStats {
+  readonly avg: string;
+  readonly median: string;
+  readonly spread: string;
+  readonly agreement: string;
+  readonly mode: Card | null;
+  readonly totalVotes: number;
+  readonly topCards: readonly Card[];
+  readonly hasTie: boolean;
+  readonly hasConsensus: boolean;
+  readonly resultLabel: string;
+  readonly resultValue: string;
+  readonly resultHelp: string;
+  readonly distribution: readonly VoteDistributionItem[];
+}
+
+interface ActionCue {
+  readonly icon: string;
+  readonly text: string;
+  readonly tone: 'neutral' | 'action' | 'success';
 }
 
 @Component({
@@ -54,7 +84,7 @@ export class RoomPage {
   private readonly signalr = inject(SignalRService);
   private readonly identity = inject(IdentityService);
   private readonly fb = inject(FormBuilder);
-  private readonly snack = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
 
   protected readonly roomId = toSignal(
@@ -163,43 +193,165 @@ export class RoomPage {
     () => this.participants().filter((p) => p.role === 'Voter').length,
   );
 
-  protected readonly stats = computed(() => {
+  protected readonly actionCue = computed<ActionCue>(() => {
+    const round = this.currentRound();
+    const canModerate = this.canModerate();
+    const ownRole = this.ownParticipant()?.role;
+
+    if (!round) {
+      return canModerate
+        ? {
+            icon: 'play_circle',
+            text: 'Start a round when the team is ready to estimate.',
+            tone: 'action',
+          }
+        : {
+            icon: 'hourglass_empty',
+            text: 'Waiting for a moderator to start the next round.',
+            tone: 'neutral',
+          };
+    }
+
+    if (round.phase === 'Voting') {
+      if (ownRole === 'Observer') {
+        return {
+          icon: 'visibility',
+          text: 'You are observing. Switch to Voter if you need to cast a card.',
+          tone: 'neutral',
+        };
+      }
+
+      if (canModerate) {
+        const remaining = Math.max(this.voterCount() - this.votedCount(), 0);
+        return remaining === 0 && this.voterCount() > 0
+          ? {
+              icon: 'task_alt',
+              text: 'All voters have picked. Reveal when discussion is ready.',
+              tone: 'success',
+            }
+          : {
+              icon: 'how_to_vote',
+              text: `${this.votedCount()} of ${this.voterCount()} voters have picked. You can reveal at any time.`,
+              tone: 'action',
+            };
+      }
+
+      return this.ownVote()
+        ? {
+            icon: 'check_circle',
+            text: 'Your vote is saved. You can change it until the reveal.',
+            tone: 'success',
+          }
+        : {
+            icon: 'style',
+            text: 'Pick a card from your deck before the moderator reveals.',
+            tone: 'action',
+          };
+    }
+
+    return canModerate
+      ? {
+          icon: 'analytics',
+          text: 'Review the distribution, then choose a final estimate or reset the vote.',
+          tone: 'action',
+        }
+      : {
+          icon: 'analytics',
+          text: 'Results are revealed. Waiting for the moderator to end or reset the round.',
+          tone: 'neutral',
+        };
+  });
+
+  protected readonly stats = computed<RevealedStats | null>(() => {
     const round = this.currentRound();
     if (!round || round.phase !== 'Revealed') return null;
+    const revealedCards = round.votes
+      .map((v) => v.card)
+      .filter((c): c is Card => c != null);
     const numeric = round.votes
       .map((v) => v.card)
       .filter((c): c is Card => c != null && c !== '?')
       .map((c) => parseInt(c as string, 10))
       .filter((n) => !Number.isNaN(n));
 
-    if (numeric.length === 0) {
-      return { avg: '-', median: '-', spread: '-', consensus: '-', mode: null };
-    }
+    const totalVotes = revealedCards.length;
+    const counts = new Map<Card, number>(this.deck.map((card) => [card, 0]));
+    revealedCards.forEach((card) => counts.set(card, (counts.get(card) ?? 0) + 1));
+    const topCount = Math.max(0, ...Array.from(counts.values()));
+    const topCards = this.deck.filter((card) => (counts.get(card) ?? 0) === topCount && topCount > 0);
+    const hasTie = topCards.length > 1;
+    const hasConsensus = totalVotes > 0 && topCards.length === 1 && topCount === totalVotes;
+    const mode = topCards.length === 1 ? topCards[0] : null;
+    const distribution = this.deck
+      .map((card) => {
+        const count = counts.get(card) ?? 0;
+        return {
+          card,
+          count,
+          percent: totalVotes === 0 ? 0 : Math.round((count / totalVotes) * 100),
+          isLeader: count > 0 && count === topCount,
+        };
+      })
+      .filter((item) => item.count > 0);
 
     const sorted = [...numeric].sort((a, b) => a - b);
     const sum = sorted.reduce((a, b) => a + b, 0);
-    const avg = (sum / sorted.length).toFixed(1);
+    const avg = sorted.length === 0 ? '-' : (sum / sorted.length).toFixed(1);
     const mid = Math.floor(sorted.length / 2);
     const median =
-      sorted.length % 2 === 0 ? ((sorted[mid - 1] + sorted[mid]) / 2).toFixed(1) : `${sorted[mid]}`;
-    const spread = sorted[0] === sorted[sorted.length - 1]
-      ? `${sorted[0]}`
-      : `${sorted[0]}-${sorted[sorted.length - 1]}`;
+      sorted.length === 0
+        ? '-'
+        : sorted.length % 2 === 0
+          ? ((sorted[mid - 1] + sorted[mid]) / 2).toFixed(1)
+          : `${sorted[mid]}`;
+    const spread =
+      sorted.length === 0
+        ? '-'
+        : sorted[0] === sorted[sorted.length - 1]
+          ? `${sorted[0]}`
+          : `${sorted[0]}-${sorted[sorted.length - 1]}`;
 
-    const counts = new Map<number, number>();
-    sorted.forEach((n) => counts.set(n, (counts.get(n) ?? 0) + 1));
-    let mode = sorted[0];
-    let modeCount = 0;
-    counts.forEach((c, n) => {
-      if (c > modeCount) { modeCount = c; mode = n; }
-    });
-    const consensus = `${modeCount}/${sorted.length}`;
-    return { avg, median, spread, consensus, mode };
+    let resultLabel = 'No votes revealed';
+    let resultValue = '-';
+    let resultHelp = 'There are no votes to summarize.';
+
+    if (hasConsensus && mode) {
+      resultLabel = mode === '?' ? 'Shared signal' : 'Consensus estimate';
+      resultValue = mode;
+      resultHelp =
+        mode === '?'
+          ? 'Every revealed vote asked for more information.'
+          : `Every revealed vote selected ${mode}.`;
+    } else if (hasTie) {
+      resultLabel = 'No clear leader';
+      resultValue = topCards.join(' / ');
+      resultHelp = `Tie across ${topCards.length} cards. Choose a final estimate manually or reset.`;
+    } else if (mode) {
+      resultLabel = 'Most common estimate';
+      resultValue = mode;
+      resultHelp = `${topCount} of ${totalVotes} revealed votes selected ${mode}.`;
+    }
+
+    return {
+      avg,
+      median,
+      spread,
+      agreement: totalVotes === 0 ? '-' : `${topCount}/${totalVotes}`,
+      mode,
+      totalVotes,
+      topCards,
+      hasTie,
+      hasConsensus,
+      resultLabel,
+      resultValue,
+      resultHelp,
+      distribution,
+    };
   });
 
   protected readonly modeCard = computed(() => {
     const s = this.stats();
-    return s?.mode != null ? String(s.mode) : null;
+    return s?.mode != null && !s.hasTie ? s.mode : null;
   });
 
   constructor() {
@@ -304,18 +456,24 @@ export class RoomPage {
     });
   }
 
-  protected copyShareLink(): void {
-    const url = window.location.href;
-    void navigator.clipboard?.writeText(url).then(() =>
-      this.snack.open('Room link copied', undefined, { duration: 1800 }),
-    );
+  protected openShareDialog(): void {
+    this.dialog.open(ShareRoomDialogComponent, {
+      data: {
+        roomName: this.room()?.name ?? 'Planning room',
+        url: window.location.href,
+      },
+      panelClass: 'share-room-dialog-panel',
+      width: 'min(560px, calc(100vw - 32px))',
+      autoFocus: 'dialog',
+    });
   }
 
   protected isOutlier(seat: Seat): boolean {
     const stats = this.stats();
     if (!stats || !seat.revealedCard || seat.revealedCard === '?') return false;
     const val = parseInt(seat.revealedCard, 10);
-    if (Number.isNaN(val) || stats.mode == null) return false;
-    return Math.abs(val - stats.mode) >= 5;
+    const mode = stats.mode == null || stats.mode === '?' ? Number.NaN : parseInt(stats.mode, 10);
+    if (Number.isNaN(val) || Number.isNaN(mode)) return false;
+    return Math.abs(val - mode) >= 5;
   }
 }

@@ -40,7 +40,7 @@
         @if (selectedRoom(); as r) {
           <header>
             <div>
-              <div class="history__rounds-meta">r/{{ r.id }}</div>
+              <div class="history__rounds-meta" [title]="'Room id: ' + r.id">r/{{ shortRoomId(r.id) }}</div>
               <h2>{{ r.name }}</h2>
               <p class="muted">{{ r.completedRoundCount }} completed rounds</p>
             </div>

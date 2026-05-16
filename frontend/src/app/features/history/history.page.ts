@@ -48,4 +48,8 @@ export class HistoryPage {
     this.selectedRoomId.set(roomId);
     this.api.getRoomHistory(roomId).subscribe((res) => this.rounds.set(res.rounds));
   }
+
+  protected shortRoomId(roomId: RoomId): string {
+    return roomId.length > 14 ? `${roomId.slice(0, 8)}...${roomId.slice(-4)}` : roomId;
+  }
 }
