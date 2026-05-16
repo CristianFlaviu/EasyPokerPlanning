@@ -143,6 +143,17 @@ Last updated: 2026-05-16
 - Verification: `dotnet build backend/PokerPlanning.slnx` and full `./scripts/smoke-test.ps1 -SkipBuild` pass
 - Smoke artifacts: `.codex-run/smoke-20260516-110634`
 
+### AI test use case docs
+- Added `docs/ai-test-use-cases/` with one focused Markdown prompt per major test flow
+- Covered create room, shared-link join, password-protected join, round lifecycle, moderator permissions, observer role, leave room, reconnect/current-round persistence, history, and a compact full v1 smoke
+- Each use case includes setup, steps, expected results, and required failure-report details
+- Added a shared Browser testing guide and linked every UI use case to it so AI agents know to use the Browser plugin/skill for localhost feature testing
+
+### AI UX review docs
+- Added `docs/ai-ux-review/` with prompts for AI-led product, page, and flow review
+- Added a shared review guide requiring Browser plugin/skill inspection of the live app before proposing UX/design changes
+- Covered full-product review, lobby, room, history, and alternative v1 flow proposals
+
 ---
 
 ## In progress / blocked
