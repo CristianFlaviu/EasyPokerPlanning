@@ -192,6 +192,9 @@ export class RoomPage {
   protected readonly voterCount = computed(
     () => this.participants().filter((p) => p.role === 'Voter').length,
   );
+  protected readonly canRevealVotes = computed(
+    () => this.currentRound()?.phase === 'Voting' && this.votedCount() > 0,
+  );
 
   protected readonly actionCue = computed<ActionCue>(() => {
     const round = this.currentRound();
@@ -231,7 +234,10 @@ export class RoomPage {
             }
           : {
               icon: 'how_to_vote',
-              text: `${this.votedCount()} of ${this.voterCount()} voters have picked. You can reveal at any time.`,
+              text:
+                this.votedCount() === 0
+                  ? 'Waiting for the first vote before reveal is available.'
+                  : `${this.votedCount()} of ${this.voterCount()} voters have picked. Reveal when discussion is ready.`,
               tone: 'action',
             };
       }
@@ -394,7 +400,7 @@ export class RoomPage {
 
   protected revealVotes(): void {
     const roomId = this.roomId();
-    if (roomId) this.api.revealVotes(roomId).subscribe();
+    if (roomId && this.canRevealVotes()) this.api.revealVotes(roomId).subscribe();
   }
 
   protected resetRound(): void {

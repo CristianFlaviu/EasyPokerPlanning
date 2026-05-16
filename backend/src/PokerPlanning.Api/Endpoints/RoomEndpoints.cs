@@ -121,9 +121,11 @@ public static class RoomEndpoints
     private static async Task<IResult> GetRoom(
         Guid id,
         IMediator mediator,
+        HttpContext http,
         CancellationToken ct)
     {
-        var result = await mediator.Send(new GetRoomQuery(id), ct);
+        var participantId = ResolveParticipantId(http, null);
+        var result = await mediator.Send(new GetRoomQuery(id, participantId), ct);
 
         return result.ToHttpResult(value =>
             TypedResults.Ok(new GetRoomResponse(

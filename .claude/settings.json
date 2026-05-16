@@ -6,7 +6,17 @@
       "PowerShell(dotnet add backend/src/PokerPlanning.Api package Scalar.AspNetCore 2>&1)",
       "Bash(cd c:/Repos/EasyPokerPlanning/frontend/src/app && find features core -type f | head -40 && echo '---routes---' && cat app.routes.ts && echo '---styles---' && find ../.. -maxdepth 3 -name '*.scss' -not -path '*/node_modules/*' | head)",
       "Read(//c/Repos/**)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "PowerShell($ports = @\\(4200, 5218\\); foreach \\($p in $ports\\) { $r = Test-NetConnection -ComputerName localhost -Port $p -WarningAction SilentlyContinue -InformationLevel Quiet; Write-Output \"Port $p : $r\" })",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_evaluate",
+      "mcp__plugin_playwright_playwright__browser_snapshot",
+      "mcp__plugin_playwright_playwright__browser_fill_form",
+      "mcp__plugin_playwright_playwright__browser_click",
+      "mcp__plugin_playwright_playwright__browser_network_requests",
+      "mcp__plugin_playwright_playwright__browser_console_messages",
+      "mcp__plugin_playwright_playwright__browser_tabs",
+      "mcp__plugin_playwright_playwright__browser_type"
     ]
   }
 }

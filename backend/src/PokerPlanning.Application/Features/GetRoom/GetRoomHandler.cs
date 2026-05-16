@@ -25,6 +25,7 @@ public sealed class GetRoomHandler(IRoomRepository rooms)
         if (room.CurrentRound is not null)
         {
             var isRevealed = room.CurrentRound.Phase == RoundPhase.Revealed;
+            var callerCanSeeOwnVote = query.CallerParticipantId != Guid.Empty;
             currentRound = new GetRoomRoundResult(
                 room.CurrentRound.Id,
                 room.CurrentRound.Title,
@@ -32,7 +33,9 @@ public sealed class GetRoomHandler(IRoomRepository rooms)
                 room.CurrentRound.Votes
                     .Select(v => new GetRoomVoteResult(
                         v.Key.Value,
-                        isRevealed ? v.Value.Value : null,
+                        isRevealed || (callerCanSeeOwnVote && v.Key.Value == query.CallerParticipantId)
+                            ? v.Value.Value
+                            : null,
                         isRevealed))
                     .ToList());
         }

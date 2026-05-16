@@ -79,6 +79,9 @@ public sealed class Round
         if (Phase != RoundPhase.Voting)
             return Result.Failure(RoundErrors.CannotReveal);
 
+        if (_votes.Count == 0)
+            return Result.Failure(RoundErrors.EmptyRound);
+
         Phase = RoundPhase.Revealed;
         return Result.Success();
     }
@@ -97,6 +100,9 @@ public sealed class Round
     {
         if (Phase != RoundPhase.Revealed)
             return Result.Failure<CompletedRound>(RoundErrors.CannotEnd);
+
+        if (_votes.Count == 0)
+            return Result.Failure<CompletedRound>(RoundErrors.EmptyRound);
 
         return Result.Success(new CompletedRound(
             Id,
@@ -129,6 +135,10 @@ public static class RoundErrors
     public static readonly Error CannotReveal = new(
         "Round.CannotReveal",
         "Only a voting round can be revealed.");
+
+    public static readonly Error EmptyRound = new(
+        "Round.EmptyRound",
+        "A round must have at least one vote before it can be revealed or ended.");
 
     public static readonly Error CannotReset = new(
         "Round.CannotReset",

@@ -46,3 +46,6 @@ appsettings.*.local.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Playwright MCP artifacts
+.playwright-mcp/

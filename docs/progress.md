@@ -169,6 +169,13 @@ Last updated: 2026-05-16
 - Verification: `npm run build` and targeted rendered checks for desktop share dialog, copy confirmation, clean navbar text, and 390px mobile navbar overflow passed
 - Artifacts: `.codex-run/share-dialog-20260516-221133`
 
+### Round reveal/reconnect bug fixes
+- Backend `GET /rooms/{id}` now returns the caller's own card during the Voting phase while keeping other participants' cards hidden until reveal
+- Domain round lifecycle now rejects revealing or archiving empty rounds, preventing `0 votes` history entries
+- Frontend moderator reveal actions are disabled until at least one vote exists, with matching action cue copy
+- Updated `docs/domain-model.md` with the empty-round reveal invariant
+- Verification: `dotnet build backend/src/PokerPlanning.Api/PokerPlanning.Api.csproj -o .codex-run/build-api` and `npm run build` pass; full solution build was blocked by a running `PokerPlanning.Api` process locking Debug DLLs
+
 ---
 
 ## In progress / blocked

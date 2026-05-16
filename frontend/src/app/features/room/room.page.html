@@ -162,7 +162,13 @@
                   <p>{{ s.resultHelp }}</p>
                 </div>
               } @else if (currentRound() && canModerate()) {
-                <button mat-flat-button color="primary" class="room__reveal" (click)="revealVotes()">
+                <button
+                  mat-flat-button
+                  color="primary"
+                  class="room__reveal"
+                  [disabled]="!canRevealVotes()"
+                  (click)="revealVotes()"
+                >
                   Reveal cards
                 </button>
               } @else if (currentRound()) {
@@ -258,7 +264,13 @@
               <section class="rail-block rail-block--mod">
                 <header><h3>Moderator</h3></header>
                 @if (round.phase === 'Voting') {
-                  <button mat-flat-button color="primary" class="rail-action" (click)="revealVotes()">
+                  <button
+                    mat-flat-button
+                    color="primary"
+                    class="rail-action"
+                    [disabled]="!canRevealVotes()"
+                    (click)="revealVotes()"
+                  >
                     Reveal votes
                   </button>
                 } @else {
