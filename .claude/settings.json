@@ -31,7 +31,10 @@
       "Bash(dotnet user-secrets *)",
       "Read(//c/c/Repos/EasyPokerPlanning/**)",
       "Bash(grep -E \"^\\\\.env$|^\\\\.env\\\\b\")",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }
