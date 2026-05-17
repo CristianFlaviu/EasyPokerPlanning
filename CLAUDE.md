@@ -2,6 +2,7 @@
 
 > Nested `CLAUDE.md` files exist in `backend/` and `frontend/` with stack-specific rules. Read those when working inside their respective trees. This file covers project-wide concerns.
 
+
 ## What this project is
 A real-time planning poker app for agile estimation. Users create or join a room via a shareable link, optionally protected by a password. Inside the room, participants vote on a Fibonacci card for whatever the moderator is currently estimating; votes are hidden until revealed.
 
