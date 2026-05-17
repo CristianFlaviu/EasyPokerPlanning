@@ -26,10 +26,14 @@ Current production deployment of EasyPokerPlanning. All services on free tiers.
 
 ### Frontend — Cloudflare Pages
 - **URL:** https://easypokerplanning.pages.dev
+- **Project name:** `easypokerplanning`
 - **Source:** GitHub repo `CristianFlaviu/EasyPokerPlanning`, branch `main`
-- **Build command:** `cd frontend && npm ci && npm run build`
+- **Build:** runs in GitHub Actions, not Cloudflare's built-in builder (auto-build disabled in Pages settings)
+- **Workflow:** `.github/workflows/pages-deploy.yml`
+- **Build command:** `npm ci && npm run build` (under `frontend/`)
 - **Output directory:** `frontend/dist/poker-planning-frontend/browser`
-- **Auto-deploy:** every push to `main` triggers a Pages build
+- **Deploy command:** `wrangler pages deploy ... --project-name=easypokerplanning --branch=main`
+- **Trigger:** push to `main` touching `frontend/**` or the workflow file (also manual via "Run workflow")
 - **API URL baked at build time** via `frontend/src/environments/environment.prod.ts` + `fileReplacements` in `angular.json`
 
 ### Backend — Fly.io
@@ -41,7 +45,9 @@ Current production deployment of EasyPokerPlanning. All services on free tiers.
 - **Image:** built from `backend/Dockerfile` (multi-stage .NET 10 SDK → aspnet runtime)
 - **Auto-stop:** machine idles to stopped state, auto-starts on next request (~5s cold start)
 - **IPs:** shared IPv4 + dedicated IPv6 (both free)
-- **Deploy command (manual):** `cd backend && fly deploy`
+- **Deploy via GitHub Actions:** `.github/workflows/fly-deploy.yml` runs `flyctl deploy --remote-only`
+- **Trigger:** push to `main` touching `backend/**` or the workflow file (also manual via "Run workflow")
+- **Manual deploy fallback:** `cd backend && fly deploy`
 
 ### Postgres — Neon (durable storage)
 - **Endpoint:** `ep-plain-hat-altbgnv1-pooler.c-3.eu-central-1.aws.neon.tech`
@@ -107,23 +113,48 @@ docker compose down
 
 ## Deploy flow
 
+Both deploys are driven by GitHub Actions on push to `main`. Each side has its own workflow with path filters so a backend change never re-deploys the frontend (and vice versa).
+
 ### Backend change
 ```powershell
-cd backend
-fly deploy
-fly logs
+git add backend/...
+git commit -m "..."
+git push origin main
 ```
+- `.github/workflows/fly-deploy.yml` runs when files under `backend/**` change
+- Watch progress: https://github.com/CristianFlaviu/EasyPokerPlanning/actions
+- Manual deploy fallback: `cd backend && fly deploy` (requires `flyctl` installed locally)
 
 ### Frontend change
 ```powershell
+git add frontend/...
+git commit -m "..."
 git push origin main
 ```
-Cloudflare auto-builds + deploys. Watch in dashboard.
+- `.github/workflows/pages-deploy.yml` runs when files under `frontend/**` change
+- Builds Angular, deploys via `wrangler pages deploy` to project `easypokerplanning`
+- Watch: same Actions tab as above
+- Manual deploy fallback: build locally (`npm run build` in `frontend/`) then `npx wrangler pages deploy dist/poker-planning-frontend/browser --project-name=easypokerplanning --branch=main`
+
+### Manual trigger (either workflow)
+- GitHub → **Actions** tab → pick `Fly Deploy` or `Pages Deploy` → **Run workflow** → branch `main` → **Run**
 
 ### Database migration
 - Add EF migration: `dotnet ef migrations add <Name> --project backend/src/PokerPlanning.Infrastructure --startup-project backend/src/PokerPlanning.Api`
-- Commit + push
-- Next `fly deploy` applies the migration automatically on startup (see `Program.cs`)
+- Commit + push under `backend/**`
+- `fly-deploy.yml` redeploys; migration applies automatically on startup (see `Program.cs`)
+
+## GitHub Actions secrets
+
+Set under https://github.com/CristianFlaviu/EasyPokerPlanning/settings/secrets/actions
+
+| Secret | Used by | How to get |
+|--------|---------|------------|
+| `FLY_API_TOKEN` | `fly-deploy.yml` | Fly dashboard → avatar → **Tokens** → Create deploy token |
+| `CLOUDFLARE_API_TOKEN` | `pages-deploy.yml` | Cloudflare dashboard → My Profile → API Tokens → template "Edit Cloudflare Workers" |
+| `CLOUDFLARE_ACCOUNT_ID` | `pages-deploy.yml` | Cloudflare dashboard right sidebar (under any page) |
+
+Rotate any of these by creating a new token, updating the GitHub secret, then revoking the old token at the source.
 
 ## Architecture decisions
 
@@ -152,13 +183,14 @@ fly billing show
 ## Useful commands
 
 ```powershell
-# Backend
+# Backend (Fly — requires flyctl installed locally; CI handles normal deploys)
 fly status                                          # VM state
 fly logs                                            # tail logs
 fly ssh console                                     # shell into VM
 fly secrets list                                    # secret keys
 fly scale count 1                                   # single VM (current)
-fly deploy                                          # redeploy
+fly releases                                        # release history
+fly releases rollback <version>                     # revert to previous release
 fly apps destroy poker-planning-api-frosty-current-4436   # nuke app
 
 # Database
@@ -167,7 +199,17 @@ psql "$env:ConnectionStrings__postgres"
 
 # Frontend
 # Cloudflare dashboard → Workers & Pages → easypokerplanning → Deployments
+# Or rerun the GitHub Action "Pages Deploy" from the Actions tab
 ```
+
+## Where to see deploy history
+
+| What ran | Where |
+|----------|-------|
+| GitHub Action workflows (both deploys) | https://github.com/CristianFlaviu/EasyPokerPlanning/actions |
+| Fly release history + currently-running version | `fly releases` / Fly dashboard → app → **Monitoring** |
+| Cloudflare Pages deployments + build logs | Cloudflare dashboard → **Workers & Pages** → `easypokerplanning` → **Deployments** |
+| Git source-of-truth | `git log --oneline` |
 
 ## Recovery / rotate credentials
 
