@@ -7,7 +7,7 @@ namespace PokerPlanning.Domain.Rooms;
 public sealed class Room : AggregateRoot
 {
     public const int MinNameLength = 1;
-    public const int MaxNameLength = 80;
+    public const int MaxNameLength = 90;
 
     private readonly List<Participant> _participants = [];
     private readonly List<CompletedRound> _history = [];
