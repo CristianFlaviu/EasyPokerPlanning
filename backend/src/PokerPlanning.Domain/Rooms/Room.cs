@@ -249,6 +249,26 @@ public sealed class Room : AggregateRoot
         return Result.Success();
     }
 
+    public Result RemoveParticipant(ParticipantId callerId, ParticipantId participantId, DateTimeOffset now)
+    {
+        if (!CanModerate(callerId))
+            return Result.Failure(RoomErrors.NotAuthorized);
+
+        if (participantId == OwnerId)
+            return Result.Failure(RoomErrors.CannotRemoveOwner);
+
+        var participant = _participants.FirstOrDefault(p => p.Id == participantId);
+        if (participant is null)
+            return Result.Failure(RoomErrors.ParticipantNotFound);
+
+        _participants.Remove(participant);
+        _moderatorIds.Remove(participantId);
+        CurrentRound?.RemoveVote(participantId);
+
+        RaiseDomainEvent(new ParticipantRemovedEvent(Id, participantId, now));
+        return Result.Success();
+    }
+
     private bool CanModerate(ParticipantId participantId) =>
         OwnerId == participantId || _moderatorIds.Contains(participantId);
 }
@@ -282,4 +302,8 @@ public static class RoomErrors
     public static readonly Error OwnerCannotLeave = new(
         "Room.OwnerCannotLeave",
         "The room owner cannot leave an active room.");
+
+    public static readonly Error CannotRemoveOwner = new(
+        "Room.CannotRemoveOwner",
+        "The room owner cannot be removed.");
 }
