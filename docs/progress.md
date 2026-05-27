@@ -183,6 +183,12 @@ Last updated: 2026-05-27
 - Frontend: moderators can open the participant menu and remove other non-owner participants; owner-only moderator promote/demote controls remain unchanged
 - Verification: `dotnet build backend/PokerPlanning.slnx`, `npm run build`, and targeted API smoke for moderator removal including active-vote cleanup pass
 
+### Cloudflare Pages preview CORS slice
+- Diagnosed Angular `status 0 Unknown Error` on commit-preview URLs as browser CORS blocking: canonical `https://easypokerplanning.pages.dev` was allowed, preview origins like `https://4b4aa298.easypokerplanning.pages.dev` were not
+- Api: CORS now combines exact `Cors:AllowedOrigins` entries with wildcard `Cors:AllowedWildcardOrigins` entries and enables ASP.NET Core wildcard subdomain matching
+- Deployment docs: documented Cloudflare preview URLs and the wildcard CORS setting used for Pages previews
+- Verification: production canonical Pages create-room smoke passed before the code change; local API build verifies the new CORS code compiles
+
 ---
 
 ## In progress / blocked

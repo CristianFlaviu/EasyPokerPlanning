@@ -30,12 +30,26 @@ const string AppCors = "AppCors";
 var allowedOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
     .Get<string[]>()
-    ?? new[] { "http://localhost:4200", "http://localhost:4201", "http://localhost:4301" };
+    ?? [
+        "http://localhost:4200",
+        "http://localhost:4201",
+        "http://localhost:4301",
+        "https://easypokerplanning.pages.dev",
+    ];
+var allowedWildcardOrigins = builder.Configuration
+    .GetSection("Cors:AllowedWildcardOrigins")
+    .Get<string[]>()
+    ?? ["https://*.easypokerplanning.pages.dev"];
+var corsOrigins = allowedOrigins
+    .Concat(allowedWildcardOrigins)
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray();
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(AppCors, policy => policy
-        .WithOrigins(allowedOrigins)
+        .WithOrigins(corsOrigins)
+        .SetIsOriginAllowedToAllowWildcardSubdomains()
         .AllowAnyHeader()
         .AllowAnyMethod()
         .AllowCredentials());

@@ -26,6 +26,7 @@ Current production deployment of EasyPokerPlanning. All services on free tiers.
 
 ### Frontend — Cloudflare Pages
 - **URL:** https://easypokerplanning.pages.dev
+- **Preview URLs:** Cloudflare also serves commit previews such as `https://<hash>.easypokerplanning.pages.dev`
 - **Project name:** `easypokerplanning`
 - **Source:** GitHub repo `CristianFlaviu/EasyPokerPlanning`, branch `main`
 - **Build:** runs in GitHub Actions, not Cloudflare's built-in builder (auto-build disabled in Pages settings)
@@ -71,7 +72,8 @@ Set via `fly secrets set "KEY=value"` (run from `backend/`). Double underscore `
 | `ConnectionStrings__postgres` | `ConnectionStrings:postgres` | Npgsql format, `SslMode=Require` |
 | `ConnectionStrings__redis` | `ConnectionStrings:redis` | StackExchange.Redis format with `ssl=True` |
 | `MediatR__LicenseKey` | `MediatR:LicenseKey` | Lucky Penny Software JWT |
-| `Cors__AllowedOrigins__0` | `Cors:AllowedOrigins[0]` | Currently `https://easypokerplanning.pages.dev` |
+| `Cors__AllowedOrigins__0` | `Cors:AllowedOrigins[0]` | Exact origins, currently `https://easypokerplanning.pages.dev` |
+| `Cors__AllowedWildcardOrigins__0` | `Cors:AllowedWildcardOrigins[0]` | Optional wildcard origins; app default allows `https://*.easypokerplanning.pages.dev` for Cloudflare preview deployments |
 
 List current secrets (values hidden):
 ```powershell
@@ -161,7 +163,7 @@ Rotate any of these by creating a new token, updating the GitHub secret, then re
 - **Migrations on startup** — single instance, no race condition. Fine for portfolio scale.
 - **No SignalR Redis backplane** — single VM means no horizontal scaling, so backplane not needed.
 - **Pooled Neon endpoint** — Neon free tier sleeps after 5 min idle; pooler handles transparent wake.
-- **Strict CORS** — only allowed origin is the Pages domain. Update `Cors__AllowedOrigins__0` if you add a custom domain.
+- **Strict CORS** — allowed origins are the canonical Pages domain plus HTTPS subdomains of the same Pages project for preview deployments. Update `Cors__AllowedOrigins__*` for exact custom domains and `Cors__AllowedWildcardOrigins__*` only for trusted wildcard domains.
 - **OpenAPI + Scalar exposed in production** — intentional for portfolio demo. Hide behind dev flag if you reuse this template for real product.
 
 ## Cost
