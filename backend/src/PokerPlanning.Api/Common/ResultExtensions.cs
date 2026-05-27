@@ -23,6 +23,7 @@ public static class ResultExtensions
             "Room.InvalidPassword" => (StatusCodes.Status403Forbidden, "Forbidden"),
             "Room.NotAuthorized" => (StatusCodes.Status403Forbidden, "Forbidden"),
             "Room.OwnerCannotLeave" => (StatusCodes.Status403Forbidden, "Forbidden"),
+            "Room.OwnerCannotBeRemoved" => (StatusCodes.Status403Forbidden, "Forbidden"),
             "Room.ParticipantNotFound" => (StatusCodes.Status404NotFound, "Not found"),
             _ => (StatusCodes.Status400BadRequest, "Bad request"),
         };

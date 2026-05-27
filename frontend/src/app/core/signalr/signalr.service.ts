@@ -242,6 +242,10 @@ export class SignalRService {
     this.connectionState.set('disconnected');
   }
 
+  async rejoinActiveRoomGroup(): Promise<void> {
+    await this.joinActiveRoom();
+  }
+
   private async joinActiveRoom(): Promise<void> {
     if (!this.activeRoomId || this.connection?.state !== HubConnectionState.Connected) {
       return;

@@ -68,7 +68,7 @@ EndedAt : DateTimeOffset
 3. A participant can vote at most once per round. Re-submitting replaces the previous vote.
 4. Votes are accepted only when `CurrentRound.Phase == Voting`.
 5. Reveal transitions `Voting → Revealed`. From `Revealed`, only Reset or EndRound are valid.
-6. Only the Owner or a Moderator can: start a round, reveal, reset, end the round, promote/demote moderators.
+6. Only the Owner or a Moderator can: start a round, reveal, reset, end the round, and remove non-owner participants. Only the Owner can promote/demote moderators.
 7. The card deck is fixed: `1, 2, 3, 5, 8, 13, 21, ?`. No customization in v1.
 8. Observers (role) cannot submit votes but can be present.
 9. Display name uniqueness is **not** enforced — two "Alice"s are allowed in the same room. They're distinguished by participantId.
@@ -101,7 +101,8 @@ Only **start** transitions from "no round" to `Voting`. Only **endRound** transi
 |--------------------|--------------|------------------------------------|----------------------|
 | CreateRoom         | anyone       | `Room.Create(name, password?, owner)` | n/a (HTTP only)    |
 | JoinRoom           | anyone       | `room.AddParticipant(p, password?)`| `ParticipantJoined`  |
-| LeaveRoom          | participant  | `room.RemoveParticipant(id)`       | `ParticipantLeft`    |
+| LeaveRoom          | participant  | `room.LeaveRoom(id)`               | `ParticipantLeft`    |
+| RemoveParticipant  | owner/mod    | `room.RemoveParticipant(callerId, participantId)` | `ParticipantLeft` |
 | PromoteModerator   | owner        | `room.PromoteToModerator(id)`      | `ModeratorPromoted`  |
 | DemoteModerator    | owner        | `room.DemoteFromModerator(id)`     | `ModeratorDemoted`   |
 | ChangeRole         | self         | `participant.SetRole(role)`        | `ParticipantRoleChanged` |

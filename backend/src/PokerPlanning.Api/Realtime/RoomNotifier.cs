@@ -1,12 +1,15 @@
 using Microsoft.AspNetCore.SignalR;
 using PokerPlanning.Api.Hubs;
+using PokerPlanning.Application.Abstractions.LiveState;
 using PokerPlanning.Application.Abstractions.Realtime;
 using PokerPlanning.Domain.Participants;
 using PokerPlanning.Domain.Rooms;
 
 namespace PokerPlanning.Api.Realtime;
 
-public sealed class RoomNotifier(IHubContext<RoomHub, IRoomClient> hubContext) : IRoomNotifier
+public sealed class RoomNotifier(
+    IHubContext<RoomHub, IRoomClient> hubContext,
+    IRoomLiveStateStore liveState) : IRoomNotifier
 {
     public Task ParticipantJoinedAsync(
         RoomId roomId,
@@ -25,13 +28,21 @@ public sealed class RoomNotifier(IHubContext<RoomHub, IRoomClient> hubContext) :
             .ParticipantJoined(message);
     }
 
-    public Task ParticipantLeftAsync(RoomId roomId, ParticipantId participantId, CancellationToken ct)
+    public async Task ParticipantLeftAsync(RoomId roomId, ParticipantId participantId, CancellationToken ct)
     {
         var message = new ParticipantLeftMessage(participantId.Value);
+        var groupName = RoomHub.GroupName(roomId.Value);
 
-        return hubContext.Clients
-            .Group(RoomHub.GroupName(roomId.Value))
+        await hubContext.Clients
+            .Group(groupName)
             .ParticipantLeft(message);
+
+        var connectionIds = await liveState.GetParticipantConnectionIdsAsync(roomId, participantId, ct);
+        foreach (var connectionId in connectionIds)
+        {
+            await hubContext.Groups.RemoveFromGroupAsync(connectionId, groupName, ct);
+            await liveState.RemoveConnectionAsync(connectionId, ct);
+        }
     }
 
     public Task RoundStartedAsync(RoomId roomId, Guid roundId, string? title, CancellationToken ct)

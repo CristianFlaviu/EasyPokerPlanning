@@ -9,5 +9,6 @@ public interface IRoomLiveStateStore
     Task SaveCurrentRoundAsync(RoomId roomId, Round round, CancellationToken ct);
     Task ClearCurrentRoundAsync(RoomId roomId, CancellationToken ct);
     Task TrackConnectionAsync(RoomId roomId, ParticipantId participantId, string connectionId, CancellationToken ct);
+    Task<IReadOnlyList<string>> GetParticipantConnectionIdsAsync(RoomId roomId, ParticipantId participantId, CancellationToken ct);
     Task RemoveConnectionAsync(string connectionId, CancellationToken ct);
 }

@@ -305,7 +305,7 @@
             </section>
           }
 
-          @if (isOwner()) {
+          @if (canModerate()) {
             <section class="rail-block">
               <header><h3>Participants</h3></header>
               <ul class="rail-people">
@@ -313,19 +313,33 @@
                   <li>
                     <span class="pp-avatar pp-avatar--sm">{{ p.displayName.charAt(0).toUpperCase() }}</span>
                     <span class="rail-people__name">{{ p.displayName }}</span>
-                    @if (currentRoom.ownerId !== p.id) {
+                    @if (currentRoom.ownerId === p.id) {
+                      <span class="rail-people__owner">OWNER</span>
+                    } @else if (canManageParticipant(p.id)) {
                       <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Manage participant">
                         <mat-icon>more_horiz</mat-icon>
                       </button>
                       <mat-menu #menu="matMenu">
-                        @if (isModerator(p.id)) {
-                          <button mat-menu-item (click)="demoteModerator(p.id)">Demote moderator</button>
-                        } @else {
-                          <button mat-menu-item (click)="promoteModerator(p.id)">Promote to moderator</button>
+                        @if (isOwner()) {
+                          @if (isModerator(p.id)) {
+                            <button mat-menu-item (click)="demoteModerator(p.id)">
+                              <mat-icon>person_remove</mat-icon>
+                              <span>Demote moderator</span>
+                            </button>
+                          } @else {
+                            <button mat-menu-item (click)="promoteModerator(p.id)">
+                              <mat-icon>admin_panel_settings</mat-icon>
+                              <span>Promote to moderator</span>
+                            </button>
+                          }
+                        }
+                        @if (canRemoveParticipant(p.id)) {
+                          <button mat-menu-item (click)="removeParticipant(p.id)">
+                            <mat-icon>logout</mat-icon>
+                            <span>Remove from table</span>
+                          </button>
                         }
                       </mat-menu>
-                    } @else {
-                      <span class="rail-people__owner">OWNER</span>
                     }
                   </li>
                 }

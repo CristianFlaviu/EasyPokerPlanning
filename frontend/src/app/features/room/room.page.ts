@@ -428,11 +428,29 @@ export class RoomPage {
         role: 'Voter',
         password: password.length > 0 ? password : null,
       })
-      .subscribe();
+      .pipe(switchMap(() => this.api.getRoom(roomId)))
+      .subscribe((room) => {
+        this.signalr.setParticipants(room.participants);
+        this.signalr.setModeratorIds(room.moderatorIds);
+        this.signalr.setCurrentRound(room.currentRound);
+        void this.signalr.rejoinActiveRoomGroup();
+      });
   }
 
   protected isModerator(participantId: ParticipantId): boolean {
     return this.moderatorIds().includes(participantId);
+  }
+
+  protected canManageParticipant(participantId: ParticipantId): boolean {
+    return this.isOwner() || this.canRemoveParticipant(participantId);
+  }
+
+  protected canRemoveParticipant(participantId: ParticipantId): boolean {
+    return (
+      this.canModerate() &&
+      this.room()?.ownerId !== participantId &&
+      this.identity.participantId !== participantId
+    );
   }
 
   protected promoteModerator(participantId: ParticipantId): void {
@@ -443,6 +461,13 @@ export class RoomPage {
   protected demoteModerator(participantId: ParticipantId): void {
     const roomId = this.roomId();
     if (roomId) this.api.demoteModerator(roomId, participantId).subscribe();
+  }
+
+  protected removeParticipant(participantId: ParticipantId): void {
+    const roomId = this.roomId();
+    if (roomId && this.canRemoveParticipant(participantId)) {
+      this.api.removeParticipant(roomId, participantId).subscribe();
+    }
   }
 
   protected changeOwnRole(role: ParticipantRole): void {

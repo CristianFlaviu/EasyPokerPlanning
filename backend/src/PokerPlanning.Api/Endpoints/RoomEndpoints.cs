@@ -13,6 +13,7 @@ using PokerPlanning.Application.Features.GetRoomHistory;
 using PokerPlanning.Application.Features.JoinRoom;
 using PokerPlanning.Application.Features.LeaveRoom;
 using PokerPlanning.Application.Features.PromoteModerator;
+using PokerPlanning.Application.Features.RemoveParticipant;
 using PokerPlanning.Application.Features.ResetRound;
 using PokerPlanning.Application.Features.RevealVotes;
 using PokerPlanning.Application.Features.StartRound;
@@ -78,6 +79,10 @@ public static class RoomEndpoints
         group.MapPost("{id:guid}/participants/me/role", ChangeRole)
             .WithName("ChangeRole")
             .WithSummary("Change the caller's voter/observer role.");
+
+        group.MapDelete("{id:guid}/participants/{participantId:guid}", RemoveParticipant)
+            .WithName("RemoveParticipant")
+            .WithSummary("Remove a participant from the room.");
 
         group.MapDelete("{id:guid}/participants/me", LeaveRoom)
             .WithName("LeaveRoom")
@@ -333,6 +338,19 @@ public static class RoomEndpoints
     {
         var participantId = ResolveParticipantId(http, null);
         var result = await mediator.Send(new LeaveRoomCommand(id, participantId), ct);
+
+        return result.ToHttpResult(TypedResults.NoContent());
+    }
+
+    private static async Task<IResult> RemoveParticipant(
+        Guid id,
+        Guid participantId,
+        IMediator mediator,
+        HttpContext http,
+        CancellationToken ct)
+    {
+        var callerId = ResolveParticipantId(http, null);
+        var result = await mediator.Send(new RemoveParticipantCommand(id, callerId, participantId), ct);
 
         return result.ToHttpResult(TypedResults.NoContent());
     }

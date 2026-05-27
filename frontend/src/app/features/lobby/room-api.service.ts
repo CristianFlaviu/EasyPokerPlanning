@@ -125,4 +125,8 @@ export class RoomApiService {
   leaveRoom(roomId: RoomId): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${roomId}/participants/me`);
   }
+
+  removeParticipant(roomId: RoomId, participantId: ParticipantId): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${roomId}/participants/${participantId}`);
+  }
 }

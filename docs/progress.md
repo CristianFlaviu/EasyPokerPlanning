@@ -2,7 +2,7 @@
 
 > Living status doc. Any agent (human or AI) reads this after `CLAUDE.md` + `docs/domain-model.md` to know what exists, what's broken, and what's next. Update at the **end of each slice**.
 
-Last updated: 2026-05-16
+Last updated: 2026-05-27
 
 ---
 
@@ -175,6 +175,13 @@ Last updated: 2026-05-16
 - Frontend moderator reveal actions are disabled until at least one vote exists, with matching action cue copy
 - Updated `docs/domain-model.md` with the empty-round reveal invariant
 - Verification: `dotnet build backend/src/PokerPlanning.Api/PokerPlanning.Api.csproj -o .codex-run/build-api` and `npm run build` pass; full solution build was blocked by a running `PokerPlanning.Api` process locking Debug DLLs
+
+### Moderator participant removal slice
+- Domain: `Room.RemoveParticipant(...)` lets owners/moderators remove non-owner participants and reuses the participant-left event path
+- Application/Api: added `RemoveParticipant` command and `DELETE /rooms/{id}/participants/{participantId}`
+- Realtime: `ParticipantLeft` now also removes the participant's tracked SignalR connections from the room group after broadcasting the update
+- Frontend: moderators can open the participant menu and remove other non-owner participants; owner-only moderator promote/demote controls remain unchanged
+- Verification: `dotnet build backend/PokerPlanning.slnx`, `npm run build`, and targeted API smoke for moderator removal including active-vote cleanup pass
 
 ---
 

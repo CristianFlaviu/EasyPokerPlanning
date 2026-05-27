@@ -85,6 +85,20 @@ public sealed class RedisRoomLiveStateStore(IConnectionMultiplexer redis) : IRoo
         await _db.SetAddAsync(ParticipantConnectionsKey(roomId, participantId), connectionId);
     }
 
+    public async Task<IReadOnlyList<string>> GetParticipantConnectionIdsAsync(
+        RoomId roomId,
+        ParticipantId participantId,
+        CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var members = await _db.SetMembersAsync(ParticipantConnectionsKey(roomId, participantId));
+        return members
+            .Where(member => member.HasValue)
+            .Select(member => member.ToString())
+            .ToList();
+    }
+
     public async Task RemoveConnectionAsync(string connectionId, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
