@@ -2,7 +2,7 @@
 
 > Living status doc. Any agent (human or AI) reads this after `CLAUDE.md` + `docs/domain-model.md` to know what exists, what's broken, and what's next. Update at the **end of each slice**.
 
-Last updated: 2026-05-27
+Last updated: 2026-05-28
 
 ---
 
@@ -188,6 +188,11 @@ Last updated: 2026-05-27
 - Api: CORS now combines exact `Cors:AllowedOrigins` entries with wildcard `Cors:AllowedWildcardOrigins` entries and enables ASP.NET Core wildcard subdomain matching
 - Deployment docs: documented Cloudflare preview URLs and the wildcard CORS setting used for Pages previews
 - Verification: production canonical Pages create-room smoke passed before the code change; local API build verifies the new CORS code compiles
+
+### Lobby join-by-link fix
+- Frontend: `Join by link` on the lobby now targets a real join form instead of routing back to `/`
+- Frontend: lobby join form accepts either a full `/room/{id}` URL or a raw room id and navigates to the room page
+- Verification: `npm run build` passes; rendered check confirmed the button scrolls to the join form and a pasted room URL navigates to `/room/{id}`
 
 ---
 

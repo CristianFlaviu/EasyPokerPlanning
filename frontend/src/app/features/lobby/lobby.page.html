@@ -1,6 +1,6 @@
 <pp-app-bar>
   <a mat-stroked-button routerLink="/history">History</a>
-  <a mat-flat-button color="primary" routerLink="/">Join by link</a>
+  <a mat-flat-button color="primary" href="#join-room">Join by link</a>
 </pp-app-bar>
 
 <main class="lobby">
@@ -8,7 +8,10 @@
     <div class="lobby__copy pp-fade-up">
       <span class="pp-chip pp-chip--accent">Real-time / Anonymous / Free</span>
       <h1>Estimate, together.</h1>
-      <p>Planning poker for agile teams. Spin up a room, share a link, vote on Fibonacci cards, reveal together.</p>
+      <p>
+        Planning poker for agile teams. Spin up a room, share a link, vote on Fibonacci cards,
+        reveal together.
+      </p>
     </div>
     <div class="lobby__deck-shell">
       <pp-fanned-deck [spread]="9" [height]="270" [radius]="540" />
@@ -23,17 +26,35 @@
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="lobby__form">
       <mat-form-field appearance="outline">
         <mat-label>Room name</mat-label>
-        <input matInput formControlName="name" maxlength="80" autocomplete="off" placeholder="Sprint 42 estimation" />
+        <input
+          matInput
+          formControlName="name"
+          maxlength="80"
+          autocomplete="off"
+          placeholder="Sprint 42 estimation"
+        />
       </mat-form-field>
 
       <mat-form-field appearance="outline">
         <mat-label>Your display name</mat-label>
-        <input matInput formControlName="ownerDisplayName" maxlength="40" autocomplete="off" placeholder="Anna K." />
+        <input
+          matInput
+          formControlName="ownerDisplayName"
+          maxlength="40"
+          autocomplete="off"
+          placeholder="Anna K."
+        />
       </mat-form-field>
 
       <mat-form-field appearance="outline">
         <mat-label>Password (optional)</mat-label>
-        <input matInput type="password" formControlName="password" autocomplete="new-password" placeholder="Leave blank for open room" />
+        <input
+          matInput
+          type="password"
+          formControlName="password"
+          autocomplete="new-password"
+          placeholder="Leave blank for open room"
+        />
       </mat-form-field>
 
       <button
@@ -50,6 +71,48 @@
         }
       </button>
     </form>
+
+    <div class="lobby__divider" aria-hidden="true"></div>
+
+    <section id="join-room" class="lobby__join" aria-labelledby="join-room-title">
+      <header class="lobby__panel-head lobby__panel-head--join">
+        <h2 id="join-room-title">Join an existing room</h2>
+        <p>Paste a shared room URL or room id.</p>
+      </header>
+      <form [formGroup]="joinForm" (ngSubmit)="joinByLink()" class="lobby__form">
+        <mat-form-field appearance="outline">
+          <mat-label>Room link</mat-label>
+          <input
+            id="join-room-link"
+            matInput
+            formControlName="roomLink"
+            autocomplete="off"
+            placeholder="https://app.example.com/room/..."
+          />
+          @if (
+            joinForm.controls.roomLink.touched && joinForm.controls.roomLink.hasError('required')
+          ) {
+            <mat-error>Enter a room link.</mat-error>
+          }
+          @if (
+            joinForm.controls.roomLink.touched && joinForm.controls.roomLink.hasError('roomLink')
+          ) {
+            <mat-error>Enter a valid room link or id.</mat-error>
+          }
+        </mat-form-field>
+
+        <button
+          mat-stroked-button
+          color="primary"
+          type="submit"
+          class="lobby__join-submit"
+          [disabled]="joinForm.invalid"
+        >
+          Join room
+        </button>
+      </form>
+    </section>
+
     <p class="lobby__foot">Anonymous / No accounts / Nothing tracked.</p>
   </section>
 </main>
