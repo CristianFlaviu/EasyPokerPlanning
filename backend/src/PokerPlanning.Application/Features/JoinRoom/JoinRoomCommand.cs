@@ -9,6 +9,7 @@ public sealed record JoinRoomCommand(
     Guid ParticipantId,
     string DisplayName,
     ParticipantRole Role,
-    string? Password) : IRequest<Result<JoinRoomResult>>;
+    string? Password,
+    Guid? CallerUserId = null) : IRequest<Result<JoinRoomResult>>;
 
 public sealed record JoinRoomResult(Guid RoomId, Guid ParticipantId);

@@ -23,6 +23,7 @@ RoomId : Guid (value object)
 Name : string (1–80 chars)
 PasswordHash : string? (null = open room)
 OwnerId : ParticipantId
+OwnerUserId : UserId? (set when creator was signed in)
 Participants : list<Participant>     // currently in the room
 ModeratorIds : set<ParticipantId>    // subset of participants
 CurrentRound : Round? (null between rounds)
@@ -37,6 +38,7 @@ ParticipantId : Guid (value object)
 DisplayName : string (1–40 chars)
 Role : enum { Voter, Observer }
 JoinedAt : DateTimeOffset
+UserId : UserId? (optional persistent identity from sign-in)
 ```
 
 ### `Round` (entity within Room — exactly zero or one active at a time)
@@ -128,13 +130,21 @@ The `VoteSubmitted` SignalR event carries only `participantId` + a "has voted" f
 ## History view
 - `GET /rooms/history?participantId=...` returns rooms the participant has been in, with summary stats per room (number of rounds completed, when last active).
 - `GET /rooms/{id}/history` returns the list of `CompletedRound`s for a specific room.
-- A participant only sees rooms they've been in (matched by their participantId — note: this is best-effort identity since participantId is browser-local).
+- Match rule: rooms surface when **any** of the following matches the caller — current `participantId`, current `UserId` (when signed in, both on participant rows and on `Room.OwnerUserId`), or `participantId` appearing in any completed round's vote map. This means signed-in users see their rooms across browsers/devices.
+
+## Identity model (Phase 1 + 2)
+- **Anonymous default**: every browser generates a `participantId` (Guid) stored in `localStorage`. Sent on every HTTP request as `X-Participant-Id` header and SignalR query string `participantId=`. This is the **seat identity** — what a Room sees.
+- **Optional Google sign-in**: backend `/auth/google/login` runs ASP.NET Core's cookie + Google handlers; on success an httpOnly `pp.auth` cookie carries the application `UserId` as `sub`. `User` aggregate (Postgres `users` table) stores email, display name, avatar URL, and external logins.
+- **Linking semantics**: when a signed-in user creates or joins a room, the backend reads `UserId` from the cookie and records it on the `Participant` row (and on `Room.OwnerUserId` for create). `ParticipantId` stays browser-local; `UserId` is the stable cross-device identity. A new browser produces a new `ParticipantId` but the same `UserId`, so a signed-in user's next join attaches the new seat to their account and their history surfaces both seats.
+- **No retroactive claim**: rooms created or joined while anonymous keep `UserId = null` forever. Signing in afterwards does not back-fill anonymous activity.
 
 ## Out of scope for v1
 - Multiple card decks (Fibonacci only)
 - Story tracking / ticket integration (only round titles)
 - Ownership transfer
-- Account-based identity at the room level — Google sign-in is available, but rooms remain anonymous-by-default. Signed-in identity is profile-only (no Participant/Room.Owner linkage yet — Phase 2)
+- Multi-provider sign-in (only Google in v1; email magic-link planned for Phase 3)
+- Claiming existing anonymous rooms after a user signs up (not retroactive)
+- Ownership transfer between users
 - Real password recovery (passwords are room-specific; lose it, you re-create the room)
 - Spectator/observer counts in history
 - Time-boxed voting (no auto-reveal)

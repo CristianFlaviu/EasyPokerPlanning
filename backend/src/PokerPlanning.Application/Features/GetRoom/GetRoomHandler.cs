@@ -2,10 +2,11 @@ using MediatR;
 using PokerPlanning.Application.Abstractions.Persistence;
 using PokerPlanning.Domain.Common;
 using PokerPlanning.Domain.Rooms;
+using PokerPlanning.Domain.Users;
 
 namespace PokerPlanning.Application.Features.GetRoom;
 
-public sealed class GetRoomHandler(IRoomRepository rooms)
+public sealed class GetRoomHandler(IRoomRepository rooms, IUserRepository users)
     : IRequestHandler<GetRoomQuery, Result<GetRoomResult>>
 {
     public async Task<Result<GetRoomResult>> Handle(GetRoomQuery query, CancellationToken ct)
@@ -14,11 +15,25 @@ public sealed class GetRoomHandler(IRoomRepository rooms)
         if (room is null)
             return Result.Failure<GetRoomResult>(RoomErrors.NotFound);
 
+        var avatars = new Dictionary<UserId, string?>();
+        var userIds = room.Participants
+            .Where(p => p.UserId is not null)
+            .Select(p => p.UserId!.Value)
+            .Distinct()
+            .ToList();
+        foreach (var userId in userIds)
+        {
+            var user = await users.GetByIdAsync(userId, ct);
+            if (user is not null)
+                avatars[userId] = user.AvatarUrl;
+        }
+
         var participants = room.Participants
             .Select(p => new GetRoomParticipantResult(
                 p.Id.Value,
                 p.DisplayName,
-                p.Role.ToString()))
+                p.Role.ToString(),
+                p.UserId is { } uid && avatars.TryGetValue(uid, out var avatar) ? avatar : null))
             .ToList();
 
         GetRoomRoundResult? currentRound = null;

@@ -9,7 +9,7 @@ public sealed class GetParticipantRoomsHandler(IRoomRepository rooms)
 {
     public async Task<Result<GetParticipantRoomsResult>> Handle(GetParticipantRoomsQuery query, CancellationToken ct)
     {
-        var participantRooms = await rooms.ListByParticipantIdAsync(query.ParticipantId, ct);
+        var participantRooms = await rooms.ListByParticipantIdAsync(query.ParticipantId, query.CallerUserId, ct);
 
         var summaries = participantRooms
             .Select(room => new ParticipantRoomSummaryResult(

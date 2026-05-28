@@ -138,7 +138,17 @@
                     <div class="seat__card seat__card--empty"></div>
                   }
                   <div class="seat__person">
-                    <span class="pp-avatar pp-avatar--sm" [class.pp-avatar--self]="seat.isSelf">{{ seat.initial }}</span>
+                    @if (seat.avatarUrl) {
+                      <img
+                        class="pp-avatar pp-avatar--sm pp-avatar--image"
+                        [class.pp-avatar--self]="seat.isSelf"
+                        [src]="seat.avatarUrl"
+                        alt=""
+                        referrerpolicy="no-referrer"
+                      />
+                    } @else {
+                      <span class="pp-avatar pp-avatar--sm" [class.pp-avatar--self]="seat.isSelf">{{ seat.initial }}</span>
+                    }
                     <span class="seat__name">{{ seat.displayName }}</span>
                     <span class="seat__role">{{ seat.role }}</span>
                   </div>
@@ -182,7 +192,17 @@
               @for (seat of bottomSeats(); track seat.id) {
                 <div class="seat pp-fade-up" [class.seat--self]="seat.isSelf">
                   <div class="seat__person">
-                    <span class="pp-avatar pp-avatar--sm" [class.pp-avatar--self]="seat.isSelf">{{ seat.initial }}</span>
+                    @if (seat.avatarUrl) {
+                      <img
+                        class="pp-avatar pp-avatar--sm pp-avatar--image"
+                        [class.pp-avatar--self]="seat.isSelf"
+                        [src]="seat.avatarUrl"
+                        alt=""
+                        referrerpolicy="no-referrer"
+                      />
+                    } @else {
+                      <span class="pp-avatar pp-avatar--sm" [class.pp-avatar--self]="seat.isSelf">{{ seat.initial }}</span>
+                    }
                     <span class="seat__name">{{ seat.displayName }}</span>
                     <span class="seat__role">{{ seat.role }}</span>
                   </div>
@@ -222,7 +242,16 @@
                 }
               </header>
               <div class="rail-self">
-                <span class="pp-avatar pp-avatar--self">{{ self.displayName.charAt(0).toUpperCase() }}</span>
+                @if (self.avatarUrl) {
+                  <img
+                    class="pp-avatar pp-avatar--self pp-avatar--image"
+                    [src]="self.avatarUrl"
+                    alt=""
+                    referrerpolicy="no-referrer"
+                  />
+                } @else {
+                  <span class="pp-avatar pp-avatar--self">{{ self.displayName.charAt(0).toUpperCase() }}</span>
+                }
                 <div>
                   <div class="rail-self__name">{{ self.displayName }}</div>
                   <div class="rail-self__role">{{ self.role }}</div>
@@ -311,7 +340,16 @@
               <ul class="rail-people">
                 @for (p of participants(); track p.id) {
                   <li>
-                    <span class="pp-avatar pp-avatar--sm">{{ p.displayName.charAt(0).toUpperCase() }}</span>
+                    @if (p.avatarUrl) {
+                      <img
+                        class="pp-avatar pp-avatar--sm pp-avatar--image"
+                        [src]="p.avatarUrl"
+                        alt=""
+                        referrerpolicy="no-referrer"
+                      />
+                    } @else {
+                      <span class="pp-avatar pp-avatar--sm">{{ p.displayName.charAt(0).toUpperCase() }}</span>
+                    }
                     <span class="rail-people__name">{{ p.displayName }}</span>
                     @if (currentRoom.ownerId === p.id) {
                       <span class="rail-people__owner">OWNER</span>

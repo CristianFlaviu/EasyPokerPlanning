@@ -3,11 +3,14 @@ using MediatR;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication.OAuth.Claims;
 using PokerPlanning.Api.Endpoints;
 using PokerPlanning.Api.Hubs;
 using PokerPlanning.Api.Realtime;
+using PokerPlanning.Api.Security;
 using PokerPlanning.Application;
 using PokerPlanning.Application.Abstractions.Realtime;
+using PokerPlanning.Application.Abstractions.Security;
 using PokerPlanning.Application.Features.SignInWithGoogle;
 using PokerPlanning.Infrastructure;
 using PokerPlanning.Infrastructure.Persistence;
@@ -27,6 +30,8 @@ builder.AddRedisClient("redis");
 builder.Services.AddApplication(builder.Configuration["MediatR:LicenseKey"]);
 builder.Services.AddInfrastructure();
 builder.Services.AddSignalR();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IUserContext, UserContext>();
 builder.Services.AddSingleton<IRoomNotifier, RoomNotifier>();
 
 builder.Services.AddOpenApi();
@@ -75,6 +80,9 @@ if (googleConfigured)
         options.Scope.Add("email");
         options.Scope.Add("profile");
 
+        options.ClaimActions.MapJsonKey("urn:google:picture", "picture", "url");
+        options.ClaimActions.MapJsonKey("picture", "picture", "url");
+
         options.Events.OnTicketReceived = async ctx =>
         {
             var principal = ctx.Principal
@@ -84,8 +92,8 @@ if (googleConfigured)
                 ?? throw new InvalidOperationException("Google ticket missing subject.");
             var email = principal.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
             var name = principal.FindFirstValue(ClaimTypes.Name) ?? email;
-            var picture = principal.FindFirstValue("urn:google:picture")
-                ?? principal.FindFirstValue("picture");
+            var picture = principal.FindFirstValue("picture")
+                ?? principal.FindFirstValue("urn:google:picture");
 
             var mediator = ctx.HttpContext.RequestServices.GetRequiredService<IMediator>();
             var result = await mediator.Send(

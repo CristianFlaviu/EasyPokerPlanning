@@ -1,6 +1,7 @@
 using PokerPlanning.Domain.Common;
 using PokerPlanning.Domain.Participants;
 using PokerPlanning.Domain.Rooms.Events;
+using PokerPlanning.Domain.Users;
 
 namespace PokerPlanning.Domain.Rooms;
 
@@ -18,12 +19,14 @@ public sealed class Room : AggregateRoot
         string name,
         PasswordHash? passwordHash,
         ParticipantId ownerId,
+        UserId? ownerUserId,
         DateTimeOffset createdAt)
     {
         Id = id;
         Name = name;
         PasswordHash = passwordHash;
         OwnerId = ownerId;
+        OwnerUserId = ownerUserId;
         CreatedAt = createdAt;
     }
 
@@ -31,6 +34,7 @@ public sealed class Room : AggregateRoot
     public string Name { get; private set; }
     public PasswordHash? PasswordHash { get; private set; }
     public ParticipantId OwnerId { get; }
+    public UserId? OwnerUserId { get; private set; }
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset? ArchivedAt { get; private set; }
     public Round? CurrentRound { get; private set; }
@@ -51,16 +55,17 @@ public sealed class Room : AggregateRoot
         PasswordHash? passwordHash,
         ParticipantId ownerId,
         string ownerDisplayName,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        UserId? ownerUserId = null)
     {
         if (string.IsNullOrWhiteSpace(name) || name.Length is < MinNameLength or > MaxNameLength)
             return Result.Failure<Room>(RoomErrors.InvalidName);
 
-        var ownerResult = Participant.Create(ownerId, ownerDisplayName, ParticipantRole.Voter, now);
+        var ownerResult = Participant.Create(ownerId, ownerDisplayName, ParticipantRole.Voter, now, ownerUserId);
         if (ownerResult.IsFailure)
             return Result.Failure<Room>(ownerResult.Error);
 
-        var room = new Room(RoomId.New(), name.Trim(), passwordHash, ownerId, now);
+        var room = new Room(RoomId.New(), name.Trim(), passwordHash, ownerId, ownerUserId, now);
         room._participants.Add(ownerResult.Value);
         room.RaiseDomainEvent(new RoomCreatedEvent(room.Id, ownerId, now));
         return Result.Success(room);
@@ -70,7 +75,8 @@ public sealed class Room : AggregateRoot
         ParticipantId participantId,
         string displayName,
         ParticipantRole role,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        UserId? userId = null)
     {
         var existing = _participants.FirstOrDefault(p => p.Id == participantId);
         if (existing is not null)
@@ -80,11 +86,13 @@ public sealed class Room : AggregateRoot
                 return renameResult;
 
             existing.SetRole(role);
-            RaiseDomainEvent(new ParticipantJoinedEvent(Id, participantId, existing.DisplayName, existing.Role, now));
+            if (userId is not null)
+                existing.SetUserId(userId);
+            RaiseDomainEvent(new ParticipantJoinedEvent(Id, participantId, existing.DisplayName, existing.Role, existing.UserId, now));
             return Result.Success();
         }
 
-        var participantResult = Participant.Create(participantId, displayName, role, now);
+        var participantResult = Participant.Create(participantId, displayName, role, now, userId);
         if (participantResult.IsFailure)
             return Result.Failure(participantResult.Error);
 
@@ -94,6 +102,7 @@ public sealed class Room : AggregateRoot
             participantId,
             participantResult.Value.DisplayName,
             participantResult.Value.Role,
+            participantResult.Value.UserId,
             now));
         return Result.Success();
     }

@@ -2,7 +2,7 @@
 
 > Living status doc. Any agent (human or AI) reads this after `CLAUDE.md` + `docs/domain-model.md` to know what exists, what's broken, and what's next. Update at the **end of each slice**.
 
-Last updated: 2026-05-28 (browser tab favicon)
+Last updated: 2026-05-28 (Google sign-in Phase 2)
 
 ---
 
@@ -207,6 +207,16 @@ Last updated: 2026-05-28 (browser tab favicon)
 - Frontend: the dialog accepts either a full `/room/{id}` URL or a raw room id and navigates to the room page
 - Verification: `npm run build` passes; rendered check confirmed the dialog opens and a pasted room URL navigates to `/room/{id}`
 
+### Google sign-in Phase 2 (Participant/Owner ↔ User linkage + cross-device history)
+- Domain: `Participant.UserId` (nullable) and `Room.OwnerUserId` (nullable); `Room.Create` / `Room.AddParticipant` accept an optional `UserId`; rejoin path on `AddParticipant` updates the seat's `UserId` when the caller is signed in
+- Application: new `IUserContext` abstraction (`Application/Abstractions/Security/IUserContext.cs`); `CreateRoomCommand`, `JoinRoomCommand`, and `GetParticipantRoomsQuery` carry an optional `CallerUserId`; `IRoomRepository.ListByParticipantIdAsync` now takes `(participantId, userId?)`
+- Infrastructure: `RoomConfiguration` maps `room_participants.user_id` (nullable uuid) and `rooms.owner_user_id` (nullable uuid) via `UserId` value conversions; `RoomRepository.ListByParticipantIdAsync` OR-matches rooms by current `ParticipantId`, by current `UserId` on any participant row, by `Room.OwnerUserId`, or by historical vote map membership; new `AddParticipantUserId` migration
+- Api: `UserContext` adapter (`Api/Security/UserContext.cs`) reads `ClaimTypes.NameIdentifier` from `IHttpContextAccessor.HttpContext.User`; registered scoped alongside `AddHttpContextAccessor()`; `CreateRoom`, `JoinRoom`, and `GetParticipantRooms` endpoints inject `IUserContext` and pass `CurrentUserId` into the command/query
+- Behaviour: anonymous flows unchanged; signed-in user creating a room records `OwnerUserId` for cross-device ownership; signing in on a new browser surfaces existing rooms in history via `OwnerUserId` / `Participant.UserId` matching
+- Docs: `domain-model.md` adds "Identity model (Phase 1 + 2)" section, refreshes `Room` / `Participant` field tables, and clarifies the history match rule; `out of scope` list updated
+- Verification: `dotnet build PokerPlanning.Api` (isolated output) passes with 0 warnings; `dotnet ef migrations add AddParticipantUserId` produces a clean two-column add
+- Deferred to Phase 3: email magic-link provider, `user_logins` child table with unique `(provider, subject)` index — see `docs/plans/google-signin.md` §9
+
 ### Browser tab favicon
 - Frontend: added an `EP` SVG favicon matching the navbar brand mark and updated the app shell to use it instead of Angular's default favicon
 - Frontend: added 120x120 PNG, JPG, and BMP exports under `frontend/public/brand/` for Google OAuth branding uploads
@@ -222,11 +232,10 @@ No active blockers.
 
 ## Next (priority order)
 
-1. **Google sign-in Phase 2** — link signed-in identity to rooms (`docs/plans/google-signin.md` §8):
-   - Add `Participant.UserId` (nullable) and `Room.OwnerUserId` (nullable) with EF migration.
-   - `IUserContext` resolves the caller's `UserId` from the cookie principal in the API layer.
-   - `CreateRoom` / `JoinRoom` accept optional `CallerUserId`; `GetParticipantRoomsQuery` also resolves by `UserId` so signed-in users see history across browsers.
-   - Manual run: AppHost requires `Authentication:Google:ClientId` / `ClientSecret` via `dotnet user-secrets` in `PokerPlanning.Api` for the OAuth handshake to work end-to-end.
+1. **Google sign-in Phase 3** — email magic-link provider (`docs/plans/google-signin.md` §9):
+   - Add `ExternalLogin("email", <email>)` and migrate `users.logins` JSON column to a `user_logins(user_id, provider, subject)` child table with unique `(provider, subject)` index.
+   - New flow: `POST /auth/email/request` issues a signed short-lived token via email; `GET /auth/email/callback?token=...` validates and signs the cookie in.
+   - Pick a dev email transport (Mailtrap) and a prod transport (Resend / SES) before scoping the slice further.
 2. **History detail polish** — show more useful completed-round detail after the first UX polish slice:
    - Display vote breakdown with participant names/cards, not only final estimate and vote count.
    - Consider completed/ended timestamp or duration if already available through the API; avoid schema changes unless intentionally scoped.

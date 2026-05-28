@@ -5,6 +5,7 @@ using PokerPlanning.Application.Abstractions.Time;
 using PokerPlanning.Domain.Common;
 using PokerPlanning.Domain.Participants;
 using PokerPlanning.Domain.Rooms;
+using PokerPlanning.Domain.Users;
 
 namespace PokerPlanning.Application.Features.CreateRoom;
 
@@ -21,13 +22,15 @@ public sealed class CreateRoomHandler(
             : passwordHasher.Hash(cmd.Password);
 
         var ownerId = new ParticipantId(cmd.OwnerParticipantId);
+        UserId? ownerUserId = cmd.OwnerUserId is { } id ? new UserId(id) : null;
 
         var roomResult = Room.Create(
             cmd.Name,
             hash,
             ownerId,
             cmd.OwnerDisplayName,
-            clock.UtcNow);
+            clock.UtcNow,
+            ownerUserId);
 
         if (roomResult.IsFailure)
             return Result.Failure<CreateRoomResult>(roomResult.Error);

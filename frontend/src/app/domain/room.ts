@@ -10,6 +10,7 @@ export interface Participant {
   readonly id: ParticipantId;
   readonly displayName: string;
   readonly role: ParticipantRole;
+  readonly avatarUrl?: string | null;
 }
 
 export interface Room {

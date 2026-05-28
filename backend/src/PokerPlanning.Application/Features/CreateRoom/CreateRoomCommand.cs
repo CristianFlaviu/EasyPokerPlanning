@@ -7,6 +7,7 @@ public sealed record CreateRoomCommand(
     string Name,
     string? Password,
     Guid OwnerParticipantId,
-    string OwnerDisplayName) : IRequest<Result<CreateRoomResult>>;
+    string OwnerDisplayName,
+    Guid? OwnerUserId = null) : IRequest<Result<CreateRoomResult>>;
 
 public sealed record CreateRoomResult(Guid RoomId, Guid OwnerParticipantId);

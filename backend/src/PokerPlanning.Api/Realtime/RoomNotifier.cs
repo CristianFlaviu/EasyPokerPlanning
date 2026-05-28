@@ -16,12 +16,14 @@ public sealed class RoomNotifier(
         ParticipantId participantId,
         string displayName,
         ParticipantRole role,
+        string? avatarUrl,
         CancellationToken ct)
     {
         var message = new ParticipantJoinedMessage(
             participantId.Value,
             displayName,
-            role.ToString());
+            role.ToString(),
+            avatarUrl);
 
         return hubContext.Clients
             .Group(RoomHub.GroupName(roomId.Value))

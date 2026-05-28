@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using PokerPlanning.Api.Common;
+using PokerPlanning.Application.Abstractions.Security;
 using PokerPlanning.Application.Features.ChangeRole;
 using PokerPlanning.Application.Features.DemoteModerator;
 using PokerPlanning.Application.Features.CreateRoom;
@@ -95,6 +96,7 @@ public static class RoomEndpoints
         CreateRoomRequest request,
         IMediator mediator,
         HttpContext http,
+        IUserContext userContext,
         CancellationToken ct)
     {
         var participantId = ResolveParticipantId(http, request.OwnerParticipantId);
@@ -103,7 +105,8 @@ public static class RoomEndpoints
             request.Name,
             request.Password,
             participantId,
-            request.OwnerDisplayName);
+            request.OwnerDisplayName,
+            userContext.CurrentUserId);
 
         var result = await mediator.Send(command, ct);
 
@@ -139,7 +142,7 @@ public static class RoomEndpoints
                 value.OwnerId,
                 value.IsPasswordProtected,
                 value.Participants
-                    .Select(p => new RoomParticipantResponse(p.Id, p.DisplayName, p.Role))
+                    .Select(p => new RoomParticipantResponse(p.Id, p.DisplayName, p.Role, p.AvatarUrl))
                     .ToList(),
                 value.ModeratorIds,
                 value.CurrentRound is null
@@ -158,6 +161,7 @@ public static class RoomEndpoints
         JoinRoomRequest request,
         IMediator mediator,
         HttpContext http,
+        IUserContext userContext,
         CancellationToken ct)
     {
         var participantId = ResolveParticipantId(http, request.ParticipantId);
@@ -170,7 +174,8 @@ public static class RoomEndpoints
             participantId,
             request.DisplayName,
             role,
-            request.Password);
+            request.Password,
+            userContext.CurrentUserId);
 
         var result = await mediator.Send(command, ct);
 
@@ -182,10 +187,13 @@ public static class RoomEndpoints
         Guid? participantId,
         IMediator mediator,
         HttpContext http,
+        IUserContext userContext,
         CancellationToken ct)
     {
         var resolvedParticipantId = ResolveParticipantId(http, participantId);
-        var result = await mediator.Send(new GetParticipantRoomsQuery(resolvedParticipantId), ct);
+        var result = await mediator.Send(
+            new GetParticipantRoomsQuery(resolvedParticipantId, userContext.CurrentUserId),
+            ct);
 
         return result.ToHttpResult(value =>
             TypedResults.Ok(new GetParticipantRoomsResponse(
@@ -384,7 +392,8 @@ public sealed record GetRoomResponse(
 public sealed record RoomParticipantResponse(
     Guid Id,
     string DisplayName,
-    string Role);
+    string Role,
+    string? AvatarUrl);
 
 public sealed record CurrentRoundResponse(
     Guid Id,

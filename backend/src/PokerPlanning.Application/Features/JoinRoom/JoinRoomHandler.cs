@@ -5,6 +5,7 @@ using PokerPlanning.Application.Abstractions.Time;
 using PokerPlanning.Domain.Common;
 using PokerPlanning.Domain.Participants;
 using PokerPlanning.Domain.Rooms;
+using PokerPlanning.Domain.Users;
 
 namespace PokerPlanning.Application.Features.JoinRoom;
 
@@ -28,7 +29,8 @@ public sealed class JoinRoomHandler(
         }
 
         var participantId = new ParticipantId(cmd.ParticipantId);
-        var joinResult = room.AddParticipant(participantId, cmd.DisplayName, cmd.Role, clock.UtcNow);
+        UserId? callerUserId = cmd.CallerUserId is { } id ? new UserId(id) : null;
+        var joinResult = room.AddParticipant(participantId, cmd.DisplayName, cmd.Role, clock.UtcNow, callerUserId);
         if (joinResult.IsFailure)
             return Result.Failure<JoinRoomResult>(joinResult.Error);
 

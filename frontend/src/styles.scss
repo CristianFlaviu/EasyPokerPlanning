@@ -116,9 +116,17 @@ body {
   }
 
   &__user {
-    display: inline-flex;
-    align-items: center;
+    display: inline-flex !important;
+    align-items: center !important;
     gap: 8px;
+    line-height: 1;
+
+    .mdc-button__label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      line-height: 1;
+    }
   }
 
   &__avatar {
@@ -127,6 +135,8 @@ body {
     border-radius: 50%;
     object-fit: cover;
     border: 1px solid oklch(84% 0.03 250);
+    display: block;
+    flex: 0 0 auto;
   }
 
   &__avatar-fallback {
@@ -134,6 +144,7 @@ body {
     height: 28px;
     font-size: 28px;
     line-height: 28px;
+    flex: 0 0 auto;
   }
 
   &__user-name {
@@ -142,6 +153,9 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    line-height: 1;
+    display: inline-block;
+    vertical-align: middle;
   }
 
   &__user-email {
@@ -503,6 +517,12 @@ body {
   &--sm { width: 28px; height: 28px; font-size: 11px; }
   &--lg { width: 48px; height: 48px; font-size: 18px; }
   &--self { background: var(--pp-accent-soft); border-color: var(--pp-accent-line); color: var(--pp-accent-strong); }
+  &--image {
+    padding: 0;
+    background: transparent;
+    object-fit: cover;
+    display: block;
+  }
 }
 
 .pp-surface {

@@ -10,6 +10,7 @@ public interface IRoomNotifier
         ParticipantId participantId,
         string displayName,
         ParticipantRole role,
+        string? avatarUrl,
         CancellationToken ct);
 
     Task ParticipantLeftAsync(RoomId roomId, ParticipantId participantId, CancellationToken ct);

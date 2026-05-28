@@ -3,6 +3,7 @@ using PokerPlanning.Application.Abstractions.LiveState;
 using PokerPlanning.Application.Abstractions.Persistence;
 using PokerPlanning.Domain.Participants;
 using PokerPlanning.Domain.Rooms;
+using PokerPlanning.Domain.Users;
 
 namespace PokerPlanning.Infrastructure.Persistence;
 
@@ -35,9 +36,10 @@ public sealed class RoomRepository(
         return room;
     }
 
-    public async Task<IReadOnlyList<Room>> ListByParticipantIdAsync(Guid participantId, CancellationToken ct)
+    public async Task<IReadOnlyList<Room>> ListByParticipantIdAsync(Guid participantId, Guid? userId, CancellationToken ct)
     {
-        var id = new ParticipantId(participantId);
+        var pid = new ParticipantId(participantId);
+        UserId? uid = userId is { } id ? new UserId(id) : null;
 
         var rooms = await db.Rooms
             .Include(r => r.Participants)
@@ -46,8 +48,10 @@ public sealed class RoomRepository(
 
         return rooms
             .Where(r =>
-                r.Participants.Any(p => p.Id == id)
-                || r.History.Any(round => round.Votes.ContainsKey(id)))
+                r.Participants.Any(p => p.Id == pid)
+                || (uid is not null && r.Participants.Any(p => p.UserId == uid))
+                || (uid is not null && r.OwnerUserId == uid)
+                || r.History.Any(round => round.Votes.ContainsKey(pid)))
             .ToList();
     }
 

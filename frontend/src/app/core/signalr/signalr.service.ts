@@ -15,6 +15,7 @@ interface ParticipantJoinedMessage {
   readonly id: string;
   readonly displayName: string;
   readonly role: Participant['role'];
+  readonly avatarUrl: string | null;
 }
 
 interface ParticipantLeftMessage {
@@ -125,6 +126,7 @@ export class SignalRService {
         id: message.id,
         displayName: message.displayName,
         role: message.role,
+        avatarUrl: message.avatarUrl,
       });
     });
 

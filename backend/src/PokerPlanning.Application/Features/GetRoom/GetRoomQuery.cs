@@ -17,7 +17,8 @@ public sealed record GetRoomResult(
 public sealed record GetRoomParticipantResult(
     Guid Id,
     string DisplayName,
-    string Role);
+    string Role,
+    string? AvatarUrl);
 
 public sealed record GetRoomRoundResult(
     Guid Id,

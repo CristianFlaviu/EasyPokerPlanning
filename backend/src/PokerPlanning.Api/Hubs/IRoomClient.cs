@@ -17,7 +17,8 @@ public interface IRoomClient
 public sealed record ParticipantJoinedMessage(
     Guid Id,
     string DisplayName,
-    string Role);
+    string Role,
+    string? AvatarUrl);
 
 public sealed record ParticipantLeftMessage(Guid ParticipantId);
 

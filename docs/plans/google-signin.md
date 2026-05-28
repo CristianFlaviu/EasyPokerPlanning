@@ -499,7 +499,21 @@ Order matters; do not skip the regression smoke at step 5.
 
 ---
 
-## 8. Phase 2 — sketch (next slice, not for this PR)
+## 8. Phase 2 — DELIVERED 2026-05-28
+
+Below is the original sketch. Mark of what landed:
+
+- `Participant.UserId` + `Room.OwnerUserId` (nullable) — done.
+- `AddParticipant` accepts optional `UserId`; rejoin path also updates the seat's `UserId` when caller is signed in (small extension on top of the plan).
+- `IUserContext` in `Application/Abstractions/Security/`; `UserContext` adapter in `Api/Security/UserContext.cs` reads `ClaimTypes.NameIdentifier` via `IHttpContextAccessor`.
+- `CreateRoomCommand`, `JoinRoomCommand`, `GetParticipantRoomsQuery` all carry optional `CallerUserId`.
+- `IRoomRepository.ListByParticipantIdAsync(participantId, userId?)` OR-matches on participant id, current `UserId` against participant rows + `Room.OwnerUserId`, and historical vote map.
+- Migration `AddParticipantUserId` adds two nullable uuid columns. No data migration.
+- Endpoints `POST /rooms`, `POST /rooms/{id}/join`, `GET /rooms/history` inject `IUserContext`.
+
+Original sketch retained below for the record (and for Phase 3 reference).
+
+
 
 ### Linking signed-in identity to rooms
 

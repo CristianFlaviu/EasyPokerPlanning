@@ -22,6 +22,7 @@ interface Seat {
   readonly id: ParticipantId;
   readonly displayName: string;
   readonly initial: string;
+  readonly avatarUrl: string | null;
   readonly role: string;
   readonly isOwner: boolean;
   readonly isModerator: boolean;
@@ -168,6 +169,7 @@ export class RoomPage {
         id: p.id,
         displayName: p.displayName,
         initial: p.displayName.charAt(0).toUpperCase() || '?',
+        avatarUrl: p.avatarUrl ?? null,
         role,
         isOwner,
         isModerator: isMod,

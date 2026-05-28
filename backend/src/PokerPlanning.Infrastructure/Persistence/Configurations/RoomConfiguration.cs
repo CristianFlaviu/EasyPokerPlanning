@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using PokerPlanning.Domain.Participants;
 using PokerPlanning.Domain.Rooms;
+using PokerPlanning.Domain.Users;
 
 namespace PokerPlanning.Infrastructure.Persistence.Configurations;
 
@@ -28,6 +29,12 @@ public sealed class RoomConfiguration : IEntityTypeConfiguration<Room>
             .HasConversion(id => id.Value, value => new ParticipantId(value))
             .HasColumnName("owner_id")
             .IsRequired();
+
+        builder.Property(r => r.OwnerUserId)
+            .HasConversion(
+                id => id == null ? (Guid?)null : id.Value.Value,
+                value => value == null ? null : new UserId(value.Value))
+            .HasColumnName("owner_user_id");
 
         builder.Property(r => r.PasswordHash)
             .HasConversion(
@@ -77,6 +84,12 @@ public sealed class RoomConfiguration : IEntityTypeConfiguration<Room>
             pb.Property(p => p.JoinedAt)
                 .HasColumnName("joined_at")
                 .IsRequired();
+
+            pb.Property(p => p.UserId)
+                .HasConversion(
+                    id => id == null ? (Guid?)null : id.Value.Value,
+                    value => value == null ? null : new UserId(value.Value))
+                .HasColumnName("user_id");
         });
 
         builder.OwnsMany(r => r.History, hb =>
