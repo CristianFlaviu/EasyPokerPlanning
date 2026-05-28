@@ -1,0 +1,34 @@
+<form class="join-dialog" [formGroup]="form" (ngSubmit)="join()">
+  <header class="join-dialog__header">
+    <div>
+      <h2 mat-dialog-title>Join room</h2>
+      <p>Paste a shared room link or room id.</p>
+    </div>
+    <button mat-icon-button type="button" aria-label="Close join room dialog" (click)="close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <mat-dialog-content>
+    <mat-form-field appearance="outline" class="join-dialog__field">
+      <mat-label>Room link or ID</mat-label>
+      <input
+        matInput
+        formControlName="roomLink"
+        autocomplete="off"
+        placeholder="https://app.example.com/room/..."
+      />
+      @if (form.controls.roomLink.touched && form.controls.roomLink.hasError('required')) {
+        <mat-error>Enter a room link.</mat-error>
+      }
+      @if (form.controls.roomLink.touched && form.controls.roomLink.hasError('roomLink')) {
+        <mat-error>Enter a valid room link or id.</mat-error>
+      }
+    </mat-form-field>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button type="button" (click)="close()">Cancel</button>
+    <button mat-flat-button color="primary" type="submit">Join room</button>
+  </mat-dialog-actions>
+</form>

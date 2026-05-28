@@ -1,0 +1,53 @@
+.join-dialog {
+  width: min(480px, 100%);
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px 24px 8px;
+
+    h2 {
+      margin: 0;
+      padding: 0;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 6px 0 0;
+      color: var(--pp-ink-soft);
+      font-size: 13px;
+    }
+  }
+
+  &__field {
+    width: 100%;
+  }
+}
+
+mat-dialog-content {
+  padding: 20px 24px 18px !important;
+}
+
+mat-dialog-actions {
+  gap: 10px;
+  padding: 0 24px 24px !important;
+
+  button {
+    min-width: 132px;
+  }
+}
+
+@media (max-width: 520px) {
+  mat-dialog-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+
+    button {
+      width: 100%;
+    }
+  }
+}

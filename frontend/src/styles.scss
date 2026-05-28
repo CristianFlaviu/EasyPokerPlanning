@@ -236,7 +236,8 @@ body {
   }
 }
 
-.share-room-dialog-panel .mat-mdc-dialog-surface {
+.share-room-dialog-panel .mat-mdc-dialog-surface,
+.join-room-dialog-panel .mat-mdc-dialog-surface {
   border-radius: var(--pp-radius-lg) !important;
   border: 1px solid oklch(84% 0.03 250 / 0.9);
   background:

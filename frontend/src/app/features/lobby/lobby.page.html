@@ -1,6 +1,8 @@
 <pp-app-bar>
   <a mat-stroked-button routerLink="/history">History</a>
-  <a mat-flat-button color="primary" href="#join-room">Join by link</a>
+  <button mat-flat-button color="primary" type="button" (click)="openJoinDialog()">
+    Join by link
+  </button>
 </pp-app-bar>
 
 <main class="lobby">
@@ -71,47 +73,6 @@
         }
       </button>
     </form>
-
-    <div class="lobby__divider" aria-hidden="true"></div>
-
-    <section id="join-room" class="lobby__join" aria-labelledby="join-room-title">
-      <header class="lobby__panel-head lobby__panel-head--join">
-        <h2 id="join-room-title">Join an existing room</h2>
-        <p>Paste a shared room URL or room id.</p>
-      </header>
-      <form [formGroup]="joinForm" (ngSubmit)="joinByLink()" class="lobby__form">
-        <mat-form-field appearance="outline">
-          <mat-label>Room link</mat-label>
-          <input
-            id="join-room-link"
-            matInput
-            formControlName="roomLink"
-            autocomplete="off"
-            placeholder="https://app.example.com/room/..."
-          />
-          @if (
-            joinForm.controls.roomLink.touched && joinForm.controls.roomLink.hasError('required')
-          ) {
-            <mat-error>Enter a room link.</mat-error>
-          }
-          @if (
-            joinForm.controls.roomLink.touched && joinForm.controls.roomLink.hasError('roomLink')
-          ) {
-            <mat-error>Enter a valid room link or id.</mat-error>
-          }
-        </mat-form-field>
-
-        <button
-          mat-stroked-button
-          color="primary"
-          type="submit"
-          class="lobby__join-submit"
-          [disabled]="joinForm.invalid"
-        >
-          Join room
-        </button>
-      </form>
-    </section>
 
     <p class="lobby__foot">Anonymous / No accounts / Nothing tracked.</p>
   </section>

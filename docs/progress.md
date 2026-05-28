@@ -190,9 +190,9 @@ Last updated: 2026-05-28
 - Verification: production canonical Pages create-room smoke passed before the code change; local API build verifies the new CORS code compiles
 
 ### Lobby join-by-link fix
-- Frontend: `Join by link` on the lobby now targets a real join form instead of routing back to `/`
-- Frontend: lobby join form accepts either a full `/room/{id}` URL or a raw room id and navigates to the room page
-- Verification: `npm run build` passes; rendered check confirmed the button scrolls to the join form and a pasted room URL navigates to `/room/{id}`
+- Frontend: `Join by link` on the lobby now opens a focused dialog instead of routing back to `/` or adding a second form to the create-room panel
+- Frontend: the dialog accepts either a full `/room/{id}` URL or a raw room id and navigates to the room page
+- Verification: `npm run build` passes; rendered check confirmed the dialog opens and a pasted room URL navigates to `/room/{id}`
 
 ---
 

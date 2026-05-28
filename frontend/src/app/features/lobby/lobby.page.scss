@@ -86,10 +86,6 @@
   &__panel-head {
     margin-bottom: 22px;
 
-    &--join {
-      margin-bottom: 16px;
-    }
-
     h2 {
       margin: 0 0 6px;
       font-size: 22px;
@@ -104,12 +100,6 @@
     }
   }
 
-  &__divider {
-    height: 1px;
-    margin: 28px 0;
-    background: linear-gradient(90deg, transparent, oklch(84% 0.03 250), transparent);
-  }
-
   &__form {
     display: flex;
     flex-direction: column;
@@ -122,15 +112,6 @@
     min-height: 52px;
     font-size: 15px !important;
     letter-spacing: 0;
-  }
-
-  &__join {
-    scroll-margin-top: 96px;
-  }
-
-  &__join-submit {
-    height: 48px !important;
-    min-height: 48px;
   }
 
   &__foot {
