@@ -7,12 +7,12 @@ Current production deployment of EasyPokerPlanning. All services on free tiers.
 ```
 ┌────────────────────────────────┐
 │ Cloudflare Pages               │
-│ easypokerplanning.pages.dev    │  ← Angular 21 SPA (static)
+│ poker-planning-online.site     │  ← Angular 21 SPA (static)
 └───────────────┬────────────────┘
                 │ HTTPS + WSS
 ┌───────────────▼────────────────────────────────┐
 │ Fly.io — fra region                            │
-│ poker-planning-api-frosty-current-4436.fly.dev │  ← .NET 10 API + SignalR
+│ api.poker-planning-online.site                │  ← .NET 10 API + SignalR
 └──────┬──────────────────────────┬──────────────┘
        │                          │
 ┌──────▼────────────────┐  ┌──────▼─────────────────┐
@@ -25,7 +25,8 @@ Current production deployment of EasyPokerPlanning. All services on free tiers.
 ## Components
 
 ### Frontend — Cloudflare Pages
-- **URL:** https://easypokerplanning.pages.dev
+- **URL:** https://poker-planning-online.site
+- **Cloudflare Pages fallback URL:** https://easypokerplanning.pages.dev
 - **Preview URLs:** Cloudflare also serves commit previews such as `https://<hash>.easypokerplanning.pages.dev`
 - **Project name:** `easypokerplanning`
 - **Source:** GitHub repo `CristianFlaviu/EasyPokerPlanning`, branch `main`
@@ -39,7 +40,8 @@ Current production deployment of EasyPokerPlanning. All services on free tiers.
 
 ### Backend — Fly.io
 - **App name:** `poker-planning-api-frosty-current-4436`
-- **URL:** https://poker-planning-api-frosty-current-4436.fly.dev
+- **URL:** https://api.poker-planning-online.site
+- **Fly fallback URL:** https://poker-planning-api-frosty-current-4436.fly.dev
 - **Region:** `fra` (Frankfurt)
 - **VM:** 1× shared-cpu-1x, 512 MB RAM
 - **Config:** `backend/fly.toml`
@@ -72,7 +74,7 @@ Set via `fly secrets set "KEY=value"` (run from `backend/`). Double underscore `
 | `ConnectionStrings__postgres` | `ConnectionStrings:postgres` | Npgsql format, `SslMode=Require` |
 | `ConnectionStrings__redis` | `ConnectionStrings:redis` | StackExchange.Redis format with `ssl=True` |
 | `MediatR__LicenseKey` | `MediatR:LicenseKey` | Lucky Penny Software JWT |
-| `Cors__AllowedOrigins__0` | `Cors:AllowedOrigins[0]` | Exact origins, currently `https://easypokerplanning.pages.dev` |
+| `Cors__AllowedOrigins__0` | `Cors:AllowedOrigins[0]` | Exact origins, currently `https://poker-planning-online.site` |
 | `Cors__AllowedWildcardOrigins__0` | `Cors:AllowedWildcardOrigins[0]` | Optional wildcard origins; app default allows `https://*.easypokerplanning.pages.dev` for Cloudflare preview deployments |
 | `Authentication__Google__ClientId` | `Authentication:Google:ClientId` | Google Cloud Console → Credentials → OAuth client ID (Web). When unset, Google sign-in is disabled and `/auth/google/login` returns 503. |
 | `Authentication__Google__ClientSecret` | `Authentication:Google:ClientSecret` | Same client; secret half. Never log or commit. |
@@ -176,17 +178,17 @@ Single OAuth Client ID in Google Cloud Console can serve dev + prod. After creat
 1. Credentials → OAuth client → Edit.
 2. Authorised JavaScript origins:
    - `http://localhost:4200` (dev)
-   - `https://easypokerplanning.pages.dev` (prod)
+   - `https://poker-planning-online.site` (prod)
 3. Authorised redirect URIs:
    - `http://localhost:5218/auth/google/callback` (dev)
-   - `https://poker-planning-api-frosty-current-4436.fly.dev/auth/google/callback` (prod)
+   - `https://api.poker-planning-online.site/auth/google/callback` (prod)
 4. Save, then push the secrets to Fly:
    ```powershell
    cd backend
    fly secrets set "Authentication__Google__ClientId=<client-id>" "Authentication__Google__ClientSecret=<client-secret>"
    ```
    Fly restarts the VM automatically.
-5. Verify: open `https://easypokerplanning.pages.dev`, click Sign in. Google consent → land back on Pages with avatar in app bar.
+5. Verify: open `https://poker-planning-online.site`, click Sign in. Google consent → land back on Pages with avatar in app bar.
 
 OAuth consent screen stays in **Testing** while only the owner's Google account uses it; add additional Google emails under Test users to allow other testers without going through verification.
 

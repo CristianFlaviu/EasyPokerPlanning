@@ -2,7 +2,7 @@
 
 > Living status doc. Any agent (human or AI) reads this after `CLAUDE.md` + `docs/domain-model.md` to know what exists, what's broken, and what's next. Update at the **end of each slice**.
 
-Last updated: 2026-05-28 (Google sign-in Phase 2)
+Last updated: 2026-05-28 (production custom domain cutover prep)
 
 ---
 
@@ -221,6 +221,12 @@ Last updated: 2026-05-28 (Google sign-in Phase 2)
 - Frontend: added an `EP` SVG favicon matching the navbar brand mark and updated the app shell to use it instead of Angular's default favicon
 - Frontend: added 120x120 PNG, JPG, and BMP exports under `frontend/public/brand/` for Google OAuth branding uploads
 - Verification: `npm run build` passes
+
+### Production custom domain cutover prep
+- Frontend production environment now targets `https://api.poker-planning-online.site` for API and SignalR traffic
+- Deployment docs now record `https://poker-planning-online.site` as the canonical frontend URL and `https://api.poker-planning-online.site` as the canonical API URL
+- Open Google sign-in third-party-cookie bug doc now records the chosen custom-domain remediation
+- Remaining out-of-repo work: update Fly CORS secret and Google OAuth client settings through their dashboards, then redeploy frontend
 
 ---
 
