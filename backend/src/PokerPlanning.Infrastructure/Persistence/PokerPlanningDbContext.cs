@@ -3,6 +3,7 @@ using MediatR;
 using PokerPlanning.Application.Common;
 using PokerPlanning.Domain.Common;
 using PokerPlanning.Domain.Rooms;
+using PokerPlanning.Domain.Users;
 
 namespace PokerPlanning.Infrastructure.Persistence;
 
@@ -11,6 +12,7 @@ public sealed class PokerPlanningDbContext(
     IPublisher publisher) : DbContext(options)
 {
     public DbSet<Room> Rooms => Set<Room>();
+    public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

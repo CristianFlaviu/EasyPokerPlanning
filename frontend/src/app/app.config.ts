@@ -1,7 +1,14 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import {
+  ApplicationConfig,
+  inject,
+  provideAppInitializer,
+  provideBrowserGlobalErrorListeners,
+} from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
+import { AuthService } from './core/auth/auth.service';
+import { credentialsInterceptor } from './core/http/credentials.interceptor';
 import { errorInterceptor } from './core/http/error.interceptor';
 import { participantIdInterceptor } from './core/http/participant-id.interceptor';
 
@@ -11,7 +18,14 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
-    provideHttpClient(withInterceptors([participantIdInterceptor, errorInterceptor])),
+    provideHttpClient(
+      withInterceptors([
+        credentialsInterceptor,
+        participantIdInterceptor,
+        errorInterceptor,
+      ]),
+    ),
     provideAnimationsAsync(),
+    provideAppInitializer(() => inject(AuthService).refresh()),
   ],
 };

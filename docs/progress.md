@@ -2,7 +2,7 @@
 
 > Living status doc. Any agent (human or AI) reads this after `CLAUDE.md` + `docs/domain-model.md` to know what exists, what's broken, and what's next. Update at the **end of each slice**.
 
-Last updated: 2026-05-28
+Last updated: 2026-05-28 (browser tab favicon)
 
 ---
 
@@ -189,10 +189,28 @@ Last updated: 2026-05-28
 - Deployment docs: documented Cloudflare preview URLs and the wildcard CORS setting used for Pages previews
 - Verification: production canonical Pages create-room smoke passed before the code change; local API build verifies the new CORS code compiles
 
+### Google sign-in Phase 1 (auth + lobby prefill + avatar)
+- Domain: new `User` aggregate (`Domain/Users/User.cs`) with `UserId`, `ExternalLogin` (provider+subject), `UserRegisteredEvent`, and profile invariants
+- Application: `IUserRepository` abstraction, `Features/SignInWithGoogle` (find-or-create by external login), `Features/GetCurrentUser`, shared `UserDto`
+- Infrastructure: `UserConfiguration` maps `users` table in `poker` schema with unique email index and JSON-text `logins` column; `UserRepository`; DI registration; new `AddUsers` EF migration
+- Api: added `Microsoft.AspNetCore.Authentication.Google` 10.0.8; cookie + Google auth scheme in `Program.cs`; `OnTicketReceived` hook dispatches `SignInWithGoogleCommand` and rebuilds the cookie principal with our `UserId` as `sub`
+- Api: new `AuthEndpoints` — `GET /auth/google/login?returnUrl=...` (challenges Google, validates returnUrl against `Cors:AllowedOrigins`), `GET /auth/me` (returns `UserDto` or 204), `POST /auth/logout`
+- Frontend: `core/auth/AuthService` exposes `currentUser` / `isSignedIn` signals; `credentials.interceptor` attaches `withCredentials: true` to API requests; app initializer calls `/auth/me`
+- Frontend: app bar renders "Sign in with Google" when anonymous, avatar + dropdown with sign-out when signed in
+- Frontend: lobby pre-fills owner display name from Google profile while keeping field editable; SignalR connection already carried `withCredentials: true`
+- Docs: `domain-model.md` updated to reflect optional Google sign-in; this entry
+- Phase 1 deliberately defers `Participant.UserId` / `Room.OwnerUserId` linkage and cross-device history (Phase 2) and email magic-link (Phase 3) — see `docs/plans/google-signin.md`
+- Verification: `dotnet build` of `PokerPlanning.Api` to isolated output (Api process held Debug DLLs) and `npm run build` both succeed; `dotnet ef migrations add AddUsers` produces the expected single-table migration
+
 ### Lobby join-by-link fix
 - Frontend: `Join by link` on the lobby now opens a focused dialog instead of routing back to `/` or adding a second form to the create-room panel
 - Frontend: the dialog accepts either a full `/room/{id}` URL or a raw room id and navigates to the room page
 - Verification: `npm run build` passes; rendered check confirmed the dialog opens and a pasted room URL navigates to `/room/{id}`
+
+### Browser tab favicon
+- Frontend: added an `EP` SVG favicon matching the navbar brand mark and updated the app shell to use it instead of Angular's default favicon
+- Frontend: added 120x120 PNG, JPG, and BMP exports under `frontend/public/brand/` for Google OAuth branding uploads
+- Verification: `npm run build` passes
 
 ---
 
@@ -204,7 +222,12 @@ No active blockers.
 
 ## Next (priority order)
 
-1. **History detail polish** — show more useful completed-round detail after the first UX polish slice:
+1. **Google sign-in Phase 2** — link signed-in identity to rooms (`docs/plans/google-signin.md` §8):
+   - Add `Participant.UserId` (nullable) and `Room.OwnerUserId` (nullable) with EF migration.
+   - `IUserContext` resolves the caller's `UserId` from the cookie principal in the API layer.
+   - `CreateRoom` / `JoinRoom` accept optional `CallerUserId`; `GetParticipantRoomsQuery` also resolves by `UserId` so signed-in users see history across browsers.
+   - Manual run: AppHost requires `Authentication:Google:ClientId` / `ClientSecret` via `dotnet user-secrets` in `PokerPlanning.Api` for the OAuth handshake to work end-to-end.
+2. **History detail polish** — show more useful completed-round detail after the first UX polish slice:
    - Display vote breakdown with participant names/cards, not only final estimate and vote count.
    - Consider completed/ended timestamp or duration if already available through the API; avoid schema changes unless intentionally scoped.
 

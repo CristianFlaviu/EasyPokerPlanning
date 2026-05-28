@@ -1,8 +1,14 @@
+using System.Security.Claims;
+using MediatR;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using PokerPlanning.Api.Endpoints;
 using PokerPlanning.Api.Hubs;
 using PokerPlanning.Api.Realtime;
 using PokerPlanning.Application;
 using PokerPlanning.Application.Abstractions.Realtime;
+using PokerPlanning.Application.Features.SignInWithGoogle;
 using PokerPlanning.Infrastructure;
 using PokerPlanning.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +32,91 @@ builder.Services.AddSingleton<IRoomNotifier, RoomNotifier>();
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 
+var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
+var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+var googleConfigured = !string.IsNullOrWhiteSpace(googleClientId)
+    && !string.IsNullOrWhiteSpace(googleClientSecret);
+
+var authBuilder = builder.Services
+    .AddAuthentication(options =>
+    {
+        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        if (googleConfigured)
+            options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+    })
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "pp.auth";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.ExpireTimeSpan = TimeSpan.FromDays(30);
+        options.SlidingExpiration = true;
+        options.Events.OnRedirectToLogin = ctx =>
+        {
+            ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = ctx =>
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        };
+    });
+
+if (googleConfigured)
+{
+    authBuilder.AddGoogle(options =>
+    {
+        options.ClientId = googleClientId!;
+        options.ClientSecret = googleClientSecret!;
+        options.CallbackPath = "/auth/google/callback";
+        options.SaveTokens = false;
+        options.Scope.Add("email");
+        options.Scope.Add("profile");
+
+        options.Events.OnTicketReceived = async ctx =>
+        {
+            var principal = ctx.Principal
+                ?? throw new InvalidOperationException("Google ticket missing principal.");
+
+            var subject = principal.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? throw new InvalidOperationException("Google ticket missing subject.");
+            var email = principal.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
+            var name = principal.FindFirstValue(ClaimTypes.Name) ?? email;
+            var picture = principal.FindFirstValue("urn:google:picture")
+                ?? principal.FindFirstValue("picture");
+
+            var mediator = ctx.HttpContext.RequestServices.GetRequiredService<IMediator>();
+            var result = await mediator.Send(
+                new SignInWithGoogleCommand(subject, email, name, picture),
+                ctx.HttpContext.RequestAborted);
+
+            if (result.IsFailure)
+            {
+                ctx.Fail(result.Error.Message);
+                return;
+            }
+
+            var user = result.Value;
+            var identity = new ClaimsIdentity(
+                authenticationType: CookieAuthenticationDefaults.AuthenticationScheme,
+                nameType: ClaimTypes.Name,
+                roleType: ClaimTypes.Role);
+            identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()));
+            identity.AddClaim(new Claim(ClaimTypes.Email, user.Email));
+            identity.AddClaim(new Claim(ClaimTypes.Name, user.DisplayName));
+            if (!string.IsNullOrEmpty(user.AvatarUrl))
+                identity.AddClaim(new Claim("picture", user.AvatarUrl));
+
+            ctx.Principal = new ClaimsPrincipal(identity);
+        };
+    });
+}
+
+builder.Services.AddAuthorization();
+builder.Services.AddSingleton(new GoogleAuthAvailability(googleConfigured));
+
 const string AppCors = "AppCors";
 var allowedOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
@@ -44,6 +135,8 @@ var corsOrigins = allowedOrigins
     .Concat(allowedWildcardOrigins)
     .Distinct(StringComparer.OrdinalIgnoreCase)
     .ToArray();
+
+builder.Services.AddSingleton(new AllowedFrontendOrigins(allowedOrigins, allowedWildcardOrigins));
 
 builder.Services.AddCors(options =>
 {
@@ -67,6 +160,9 @@ app.MapScalarApiReference(options => options
 
 app.UseCors(AppCors);
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<PokerPlanningDbContext>();
@@ -75,6 +171,7 @@ using (var scope = app.Services.CreateScope())
 
 app.MapDefaultEndpoints();
 app.MapRoomEndpoints();
+app.MapAuthEndpoints();
 app.MapHub<RoomHub>("/hubs/rooms");
 
 app.Run();

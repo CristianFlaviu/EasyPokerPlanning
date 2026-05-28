@@ -134,7 +134,7 @@ The `VoteSubmitted` SignalR event carries only `participantId` + a "has voted" f
 - Multiple card decks (Fibonacci only)
 - Story tracking / ticket integration (only round titles)
 - Ownership transfer
-- Account-based identity (anonymous only)
+- Account-based identity at the room level — Google sign-in is available, but rooms remain anonymous-by-default. Signed-in identity is profile-only (no Participant/Room.Owner linkage yet — Phase 2)
 - Real password recovery (passwords are room-specific; lose it, you re-create the room)
 - Spectator/observer counts in history
 - Time-boxed voting (no auto-reveal)

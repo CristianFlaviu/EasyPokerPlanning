@@ -25,6 +25,7 @@ public static class ResultExtensions
             "Room.OwnerCannotLeave" => (StatusCodes.Status403Forbidden, "Forbidden"),
             "Room.OwnerCannotBeRemoved" => (StatusCodes.Status403Forbidden, "Forbidden"),
             "Room.ParticipantNotFound" => (StatusCodes.Status404NotFound, "Not found"),
+            "User.NotFound" => (StatusCodes.Status404NotFound, "Not found"),
             _ => (StatusCodes.Status400BadRequest, "Bad request"),
         };
 
