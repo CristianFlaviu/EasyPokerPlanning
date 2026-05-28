@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Authentication.OAuth.Claims;
 using PokerPlanning.Api.Endpoints;
 using PokerPlanning.Api.Hubs;
@@ -36,6 +37,16 @@ builder.Services.AddSingleton<IRoomNotifier, RoomNotifier>();
 
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedHost |
+        ForwardedHeaders.XForwardedProto;
+
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
 var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
@@ -133,6 +144,7 @@ var allowedOrigins = builder.Configuration
         "http://localhost:4200",
         "http://localhost:4201",
         "http://localhost:4301",
+        "https://poker-planning-online.site",
         "https://easypokerplanning.pages.dev",
     ];
 var allowedWildcardOrigins = builder.Configuration
@@ -157,6 +169,8 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();

@@ -225,6 +225,7 @@ Last updated: 2026-05-28 (production custom domain cutover prep)
 ### Production custom domain cutover prep
 - Frontend production environment now targets `https://api.poker-planning-online.site` for API and SignalR traffic
 - Deployment docs now record `https://poker-planning-online.site` as the canonical frontend URL and `https://api.poker-planning-online.site` as the canonical API URL
+- Api now honors `X-Forwarded-Proto` / `X-Forwarded-Host` from Fly before auth runs so Google OAuth redirect URIs are generated with public `https://` URLs
 - Open Google sign-in third-party-cookie bug doc now records the chosen custom-domain remediation
 - Remaining out-of-repo work: update Fly CORS secret and Google OAuth client settings through their dashboards, then redeploy frontend
 
