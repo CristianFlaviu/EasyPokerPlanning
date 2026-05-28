@@ -74,6 +74,8 @@ Set via `fly secrets set "KEY=value"` (run from `backend/`). Double underscore `
 | `MediatR__LicenseKey` | `MediatR:LicenseKey` | Lucky Penny Software JWT |
 | `Cors__AllowedOrigins__0` | `Cors:AllowedOrigins[0]` | Exact origins, currently `https://easypokerplanning.pages.dev` |
 | `Cors__AllowedWildcardOrigins__0` | `Cors:AllowedWildcardOrigins[0]` | Optional wildcard origins; app default allows `https://*.easypokerplanning.pages.dev` for Cloudflare preview deployments |
+| `Authentication__Google__ClientId` | `Authentication:Google:ClientId` | Google Cloud Console → Credentials → OAuth client ID (Web). When unset, Google sign-in is disabled and `/auth/google/login` returns 503. |
+| `Authentication__Google__ClientSecret` | `Authentication:Google:ClientSecret` | Same client; secret half. Never log or commit. |
 
 List current secrets (values hidden):
 ```powershell
@@ -94,7 +96,7 @@ npm start
 ```
 
 Local secrets live in:
-- **.NET user-secrets** for `PokerPlanning.Api` — `MediatR:LicenseKey` set via `dotnet user-secrets`
+- **.NET user-secrets** for `PokerPlanning.Api` — `MediatR:LicenseKey`, `Authentication:Google:ClientId`, `Authentication:Google:ClientSecret` set via `dotnet user-secrets`
 - **`.env`** at repo root (gitignored) — `MEDIATR_LICENSE_KEY` for docker-compose
 
 ## Docker compose (local prod-like test)
@@ -165,6 +167,28 @@ Rotate any of these by creating a new token, updating the GitHub secret, then re
 - **Pooled Neon endpoint** — Neon free tier sleeps after 5 min idle; pooler handles transparent wake.
 - **Strict CORS** — allowed origins are the canonical Pages domain plus HTTPS subdomains of the same Pages project for preview deployments. Update `Cors__AllowedOrigins__*` for exact custom domains and `Cors__AllowedWildcardOrigins__*` only for trusted wildcard domains.
 - **OpenAPI + Scalar exposed in production** — intentional for portfolio demo. Hide behind dev flag if you reuse this template for real product.
+- **Cookie posture** — `pp.auth` cookie uses `SameSite=None; Secure` in all environments. Required for prod (Pages and Fly are cross-site so `Lax` would drop the cookie). Works in dev too because browsers treat `http://localhost` as potentially trustworthy, so `Secure` cookies are accepted there without HTTPS.
+
+## Google OAuth setup (prod)
+
+Single OAuth Client ID in Google Cloud Console can serve dev + prod. After creating the Web client (see `docs/plans/google-signin.md` §4 / §10):
+
+1. Credentials → OAuth client → Edit.
+2. Authorised JavaScript origins:
+   - `http://localhost:4200` (dev)
+   - `https://easypokerplanning.pages.dev` (prod)
+3. Authorised redirect URIs:
+   - `http://localhost:5218/auth/google/callback` (dev)
+   - `https://poker-planning-api-frosty-current-4436.fly.dev/auth/google/callback` (prod)
+4. Save, then push the secrets to Fly:
+   ```powershell
+   cd backend
+   fly secrets set "Authentication__Google__ClientId=<client-id>" "Authentication__Google__ClientSecret=<client-secret>"
+   ```
+   Fly restarts the VM automatically.
+5. Verify: open `https://easypokerplanning.pages.dev`, click Sign in. Google consent → land back on Pages with avatar in app bar.
+
+OAuth consent screen stays in **Testing** while only the owner's Google account uses it; add additional Google emails under Test users to allow other testers without going through verification.
 
 ## Cost
 
