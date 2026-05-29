@@ -7,16 +7,17 @@
 backend/src/
 ├── PokerPlanning.Domain/         # Pure C#, no dependencies on anything outside .NET BCL
 ├── PokerPlanning.Application/    # Depends on Domain only. MediatR, FluentValidation
-├── PokerPlanning.Infrastructure/ # Depends on Application + Domain. EF Core, Redis, identity
-├── PokerPlanning.Api/            # Depends on Application + Infrastructure. Hosts endpoints + hub
-└── PokerPlanning.AppHost/        # .NET Aspire orchestration (separate, references Api)
+├── PokerPlanning.Infrastructure/ # Depends on Application + Domain. EF Core, Redis, auth, email, blob storage
+├── PokerPlanning.Api/            # Depends on Application + Infrastructure. Hosts endpoints + hub + auth
+├── PokerPlanning.AppHost/        # .NET Aspire orchestration (separate, references Api)
+└── PokerPlanning.ServiceDefaults/ # Shared Aspire wiring: telemetry, health checks, resilience
 ```
 
 `PokerPlanning.Domain` references **nothing** from this solution. It compiles in isolation.
 
 ## Domain layer rules
 - Entities are mutable but only via methods. No public setters on aggregate state.
-- Value objects (`Card`, `RoomPassword`, `ParticipantId`) are records or readonly structs.
+- Value objects (`Card`, `PasswordHash`, `ParticipantId`, `RoomId`, `UserId`) are records or readonly structs.
 - Domain logic lives on aggregate methods. Example:
   ```csharp
   public sealed class Room
@@ -37,7 +38,7 @@ backend/src/
       }
   }
   ```
-- Use a `Result` type (build a minimal one or pull `ErrorOr` / `FluentResults`) for expected failures. Exceptions only for truly exceptional cases.
+- Use the project's own `Result` / `Result<T>` type (`Domain/Common/Result.cs`, paired with `Domain/Common/Error.cs`) for expected failures. Do not add `ErrorOr` / `FluentResults` — the in-house type is the standard here. Exceptions only for truly exceptional cases.
 - Domain events are raised by aggregates and dispatched after persistence (UoW pattern).
 
 ## Application layer rules
@@ -69,6 +70,7 @@ backend/src/
 - Repository implementations adapt EF to domain — they may map between persistence shapes and aggregates if needed.
 - Redis access goes through interfaces defined in Application (`IRoomLiveStateStore`).
 - The `PokerPlanningDbContext` lives here; Application never references it directly.
+- Other adapters implementing Application abstractions: `Security/` (`BCryptPasswordHasher`), `Email/` (`GmailSmtpEmailSender` → `IEmailSender`), `Storage/` (`AzureBlobAvatarStorage` → `IAvatarStorage`), `Time/` (`SystemClock` → `IClock`).
 
 ## API layer rules
 - **Minimal APIs**, organized with endpoint route groups, one file per feature group:
@@ -106,17 +108,29 @@ backend/src/
 - Records for DTOs, commands, queries, value objects
 
 ## Persistence split (Postgres vs Redis)
-- **Postgres** stores: rooms (metadata: name, ownerHash, passwordHash, createdAt, archivedAt), completed rounds (title, final estimate, vote breakdown JSON), participant identities for history.
+- **Postgres** stores: rooms (metadata: name, ownerId, ownerUserId, passwordHash, createdAt, archivedAt), completed rounds (title, final estimate, vote breakdown JSON), participant identities for history, **users** (id, email, display name, avatar url, external logins), and **email login tokens** (magic-link auth). See `Persistence/Migrations/` for the current schema.
 - **Redis** stores: live room state (current round phase, current votes, participant connections, presence). Keys: `room:{id}:state`, `room:{id}:participants`, `participant:{id}:connection`.
 - On `Reveal` and `EndRound`, persist the round to Postgres and either clear Redis (round ended) or reset for next round.
 - Repository pattern: `IRoomRepository` (Postgres) and `IRoomLiveStateStore` (Redis) are separate interfaces. Aggregates are *reconstituted* from both as needed.
 
-## Auth model (anonymous + room password)
-- A `participantId` is generated client-side per browser session, stored in localStorage, sent on every hub connect and HTTP request.
+## Auth model (anonymous participant overlaid with optional user account)
+Two independent identity layers coexist — do not conflate them:
+
+**1. Anonymous participant (per-browser, room-scoped)**
+- A `participantId` is generated client-side per browser, stored in localStorage, sent on every hub connect and HTTP request.
 - The room owner is whoever created it — their `participantId` is the `OwnerId` on the room.
-- Room password is hashed (BCrypt / Argon2) and stored on the Room aggregate. Join requires submitting the password if set.
-- Moderator status is granted by the owner via a `PromoteToModerator` command; moderator participantIds are stored on the room.
-- No JWT, no Identity, no OAuth. Authorization checks happen in handlers ("is caller the owner or a moderator?").
+- Room password is hashed (BCrypt, via `BCryptPasswordHasher`) and stored as `PasswordHash` on the Room aggregate. Join requires submitting the password if set.
+- Moderator status is granted by the owner via `PromoteModerator` / removed via `DemoteModerator`; moderator participantIds live on the room.
+- Room-action authorization happens in handlers ("is caller the owner or a moderator?").
+
+**2. User account (cross-room, optional sign-in)**
+- A `User` aggregate exists (email, display name, avatar). Sign-in is **cookie-based** (scheme `pp.auth`, HttpOnly, 30-day sliding) — set up in `Api/Program.cs`.
+- Two login paths: **Google OAuth** (`SignInWithGoogle`, only wired if `Authentication:Google:ClientId/Secret` configured) and **email magic-link** (`RequestEmailLogin` → emailed token → `ConsumeEmailLoginToken`).
+- `IUserContext` (impl `Api/Security/UserContext.cs`) reads the current user id from cookie claims; null when not signed in.
+- When a signed-in user creates a room, their `UserId` is captured as `OwnerUserId` (in addition to the anonymous `OwnerId`).
+- Profile management: `UpdateProfile`, `UploadAvatar` (stored via `IAvatarStorage` → Azure Blob).
+
+No JWT bearer tokens — auth is the ASP.NET Core cookie scheme above. Avatars and email are external services behind Application interfaces (`IAvatarStorage`, `IEmailSender`).
 
 ## Aspire AppHost
 - The `AppHost` project orchestrates: Postgres container, Redis container, the API project, and (optionally) the Angular dev server.

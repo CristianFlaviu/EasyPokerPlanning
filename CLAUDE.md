@@ -6,7 +6,7 @@
 ## What this project is
 A real-time planning poker app for agile estimation. Users create or join a room via a shareable link, optionally protected by a password. Inside the room, participants vote on a Fibonacci card for whatever the moderator is currently estimating; votes are hidden until revealed.
 
-**This is a learning / portfolio project**, not production software. Optimize for clarity, modern patterns, and demonstrating clean architecture — not for scale, multi-region, or enterprise auth.
+**This is a learning / portfolio project.** Optimize for clarity, modern patterns, and demonstrating clean architecture — not for scale, multi-region, or enterprise auth. It *is* deployed (Fly.io for the API, GitHub Pages for the frontend, via the workflows in `.github/workflows/`); see `DEPLOYMENT.md`. Treat the Docker/nginx/fly config as real, but don't over-engineer for scale.
 
 ## Stack (verify before assuming — your training data may be outdated)
 - **Backend:** .NET 10 (LTS), C# 14, ASP.NET Core Minimal APIs, EF Core 10
@@ -22,7 +22,7 @@ Angular 21 was released November 2025. .NET 10 was released November 2025 and is
 ```
 poker-planning/
 ├── CLAUDE.md                # this file
-├── AGENTS.md                # Codex equivalent (kept in sync with this file)
+├── AGENTS.md                # thin pointer to this file + Codex-specific notes
 ├── docs/
 │   ├── domain-model.md      # canonical business rules — read before adding features
 │   └── progress.md          # what's done, what's blocked, what's next — read on entry, update at end of each slice
@@ -33,7 +33,8 @@ poker-planning/
 │       ├── PokerPlanning.Application/
 │       ├── PokerPlanning.Infrastructure/
 │       ├── PokerPlanning.Api/
-│       └── PokerPlanning.AppHost/
+│       ├── PokerPlanning.AppHost/
+│       └── PokerPlanning.ServiceDefaults/  # shared Aspire telemetry/health/resilience
 └── frontend/
     ├── CLAUDE.md            # frontend-specific rules
     └── src/app/
@@ -52,7 +53,7 @@ poker-planning/
 6. **Frontend mirrors backend feature boundaries.** A backend `SubmitVote` feature has a corresponding frontend service method and reactive state flow.
 
 ## Testing
-This is a learning project — **do not generate unit tests unless explicitly asked.** Integration tests exist only for SignalR flows under `tests/PokerPlanning.RealtimeTests/`. Do not add new test projects without asking.
+This is a learning project — **do not generate unit tests unless explicitly asked.** There are currently **no test projects** in the repo. Do not add one (or any test framework) without asking first.
 
 ## Commands you can run
 - `dotnet run --project backend/src/PokerPlanning.AppHost` — start everything (API + Postgres + Redis + dashboard)
@@ -80,8 +81,9 @@ The canonical example to mirror for any new backend feature is `Application/Feat
 
 ## Domain rules — quick reference
 See `docs/domain-model.md` for the full spec. Summary:
-- Rooms are anonymous; identity is per-tab `participantId` (cookie) + display name
-- Room access is open by link, optionally gated by password
+- In-room identity is per-browser `participantId` (localStorage) + chosen display name — usable with no account
+- A separate optional **user account** layer exists (Google OAuth + email magic-link, cookie session `pp.auth`). Signed-in creators get `OwnerUserId` on the room. See backend `CLAUDE.md` "Auth model" for the two-layer split
+- Room access is open by link, optionally gated by password (BCrypt hash)
 - Card deck is fixed: `1, 2, 3, 5, 8, 13, 21, ?` (no other decks)
 - A **round** is one voting cycle: start (with optional title) → vote → reveal → reset/next
 - Each completed round is persisted as history (title, votes, final estimate if set)

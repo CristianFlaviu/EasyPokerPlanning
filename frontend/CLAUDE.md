@@ -6,7 +6,7 @@
 Angular 21 was released November 2025. If your training data is older or mixed, the safest assumption is **everything you remember about Angular is potentially outdated**. Verify against `https://angular.dev` (the new docs site) before generating non-trivial code.
 
 Specifically:
-- **No `NgModule`.** Standalone components only. App is bootstrapped with `bootstrapApplication(AppComponent, appConfig)`.
+- **No `NgModule`.** Standalone components only. App is bootstrapped in `main.ts` with `bootstrapApplication(App, appConfig)`. Note Angular 21 dropped the `.component`/`Component` suffix convention for the generated root — the root file is `app.ts` and the class is `App`, not `app.component.ts` / `AppComponent`.
 - **Zoneless change detection is default.** No Zone.js. If something doesn't re-render, the value isn't in a signal.
 - **New control flow:** `@if`, `@for`, `@switch`, `@let` in templates. No structural directives.
 - **Signal inputs/outputs:** `input()`, `input.required()`, `output()`, `model()`. No `@Input()` / `@Output()` decorators.
@@ -16,21 +16,24 @@ Specifically:
 
 ## Project structure
 ```
-frontend/src/app/
-├── app.config.ts            # providers, router, http, signalr config
-├── app.component.ts         # root standalone component
-├── app.routes.ts            # lazy-loaded route definitions
-├── core/                    # singletons: services, interceptors, guards
-│   ├── signalr/             # connection management, hub proxy
-│   ├── identity/            # participantId generation/storage
-│   ├── http/                # interceptors (error, participant-id)
-│   └── theme/               # Material theme config
-├── shared/                  # reusable presentational components, pipes, directives
-├── features/                # one folder per feature route
-│   ├── lobby/               # create / join room screen
-│   ├── room/                # the active voting room
-│   └── history/             # past rooms list + detail
-└── domain/                  # TS types mirroring backend DTOs (hand-maintained or codegen)
+frontend/src/
+├── main.ts                  # bootstrapApplication(App, appConfig)
+├── styles.scss              # global styles + Material 3 theme (mat.theme(...))
+└── app/
+    ├── app.ts               # root standalone component (class App, selector app-root)
+    ├── app.config.ts        # providers, router, http, signalr config
+    ├── app.routes.ts        # lazy-loaded route definitions
+    ├── core/                # singletons: services, interceptors, guards
+    │   ├── auth/            # auth + edit-profile dialogs, auth.service
+    │   ├── signalr/         # connection management, hub proxy
+    │   ├── identity/        # participantId generation/storage
+    │   └── http/            # functional interceptors (credentials, error, participant-id)
+    ├── shared/              # reusable presentational components, pipes, directives
+    ├── features/            # one folder per feature route
+    │   ├── lobby/           # create / join room screen
+    │   ├── room/            # the active voting room
+    │   └── history/         # past rooms list + detail
+    └── domain/              # TS types mirroring backend DTOs (hand-maintained or codegen)
 ```
 
 ## State management approach
@@ -87,7 +90,7 @@ Rules:
 ## Angular Material 3 conventions
 Material 3 is the current theming system in Angular 21. The Sass mixin patterns from M2 are largely replaced by CSS custom properties and the system token API.
 
-- Theme is defined once in `core/theme/_theme.scss` using `mat.theme(...)` (Material 3 mixin)
+- Theme is defined once in `src/styles.scss` using `mat.theme(...)` (Material 3 mixin)
 - Components consume theme via CSS custom properties: `var(--mat-sys-primary)`, etc.
 - **Do not import Material modules globally.** Each component imports only what it uses (`MatButtonModule`, etc.) in its `imports` array
 - Prefer Material's typography tokens over custom font sizing
