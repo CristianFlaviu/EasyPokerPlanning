@@ -143,6 +143,7 @@ var allowedOrigins = builder.Configuration
     ?? [
         "http://localhost:4200",
         "http://localhost:4201",
+        "http://localhost:4203",
         "http://localhost:4301",
         "https://poker-planning-online.site",
         "https://easypokerplanning.pages.dev",

@@ -1,8 +1,15 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { UserDto } from '../../domain/user';
+
+export interface EmailLoginRequest {
+  readonly mode: 'login' | 'signup';
+  readonly email: string;
+  readonly displayName?: string | null;
+  readonly returnUrl: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -29,6 +36,12 @@ export class AuthService {
   signInWithGoogle(returnUrl: string = window.location.href): void {
     const url = `${environment.apiBaseUrl}/auth/google/login?returnUrl=${encodeURIComponent(returnUrl)}`;
     window.location.assign(url);
+  }
+
+  requestEmailLogin(request: EmailLoginRequest): Observable<void> {
+    return this.http.post<void>(`${environment.apiBaseUrl}/auth/email/request`, request, {
+      withCredentials: true,
+    });
   }
 
   async signOut(): Promise<void> {

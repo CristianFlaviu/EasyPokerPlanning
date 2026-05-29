@@ -1,0 +1,119 @@
+<section class="auth-dialog">
+  <header class="auth-dialog__header">
+    <div>
+      <h2>{{ mode() === 'signup' ? 'Sign up' : 'Login' }}</h2>
+    </div>
+    <button mat-icon-button type="button" aria-label="Close auth dialog" (click)="close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <div class="auth-dialog__tabs" role="tablist" aria-label="Authentication mode">
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="mode() === 'signup'"
+      [class.auth-dialog__tab--active]="mode() === 'signup'"
+      (click)="switchMode('signup')"
+    >
+      Sign Up
+    </button>
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="mode() === 'login'"
+      [class.auth-dialog__tab--active]="mode() === 'login'"
+      (click)="switchMode('login')"
+    >
+      Login
+    </button>
+  </div>
+
+  @if (sentTo()) {
+    <div class="auth-dialog__success">
+      <div class="auth-dialog__success-icon">
+        <mat-icon>mark_email_read</mat-icon>
+      </div>
+      <h3>Check your inbox</h3>
+      <p>
+        @if (resent()) {
+          We sent a fresh one-time login link to
+        } @else {
+          We sent a one-time login link to
+        }
+        <strong>{{ sentTo() }}</strong>.
+      </p>
+      <span class="auth-dialog__hint">The link expires in 15 minutes.</span>
+      <div class="auth-dialog__success-actions">
+        <button mat-flat-button type="button" (click)="resendEmail()" [disabled]="submitting()">
+          <mat-icon>refresh</mat-icon>
+          {{ submitting() ? 'Sending...' : 'Resend email' }}
+        </button>
+        <button mat-button type="button" (click)="editEmail()" [disabled]="submitting()">
+          Use another email
+        </button>
+      </div>
+    </div>
+  } @else {
+    <div class="auth-dialog__body">
+      <button
+        class="auth-dialog__provider auth-dialog__provider--google"
+        type="button"
+        (click)="continueWithGoogle()"
+      >
+        <span>G</span>
+        {{ mode() === 'signup' ? 'Sign up' : 'Login' }} with Google
+      </button>
+
+      <div class="auth-dialog__divider"><span>or continue with email</span></div>
+
+      @if (mode() === 'signup') {
+        <form [formGroup]="signupForm" (ngSubmit)="submitEmail()" class="auth-dialog__form">
+          <mat-form-field appearance="outline">
+            <mat-label>Email</mat-label>
+            <input
+              matInput
+              formControlName="email"
+              maxlength="254"
+              autocomplete="email"
+            />
+            @if (signupForm.controls.email.touched && signupForm.controls.email.hasError('required')) {
+              <mat-error>Enter your email.</mat-error>
+            }
+            @if (signupForm.controls.email.touched && signupForm.controls.email.hasError('email')) {
+              <mat-error>Enter a valid email.</mat-error>
+            }
+          </mat-form-field>
+
+          <button mat-flat-button type="submit" [disabled]="submitting()">
+            <mat-icon>mail</mat-icon>
+            {{ submitting() ? 'Sending...' : 'Send sign-up link' }}
+          </button>
+        </form>
+      } @else {
+        <form [formGroup]="loginForm" (ngSubmit)="submitEmail()" class="auth-dialog__form">
+          <mat-form-field appearance="outline">
+            <mat-label>Email</mat-label>
+            <input
+              matInput
+              formControlName="email"
+              maxlength="254"
+              autocomplete="email"
+            />
+            @if (loginForm.controls.email.touched && loginForm.controls.email.hasError('required')) {
+              <mat-error>Enter your email.</mat-error>
+            }
+            @if (loginForm.controls.email.touched && loginForm.controls.email.hasError('email')) {
+              <mat-error>Enter a valid email.</mat-error>
+            }
+          </mat-form-field>
+
+          <button mat-flat-button type="submit" [disabled]="submitting()">
+            <mat-icon>mail</mat-icon>
+            {{ submitting() ? 'Sending...' : 'Send login link' }}
+          </button>
+        </form>
+      }
+    </div>
+  }
+</section>

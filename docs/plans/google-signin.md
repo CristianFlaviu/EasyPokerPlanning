@@ -2,7 +2,7 @@
 
 > Standalone implementation brief. Any agent (human or AI) can pick this up cold. Read in order: this file → `docs/domain-model.md` → `docs/progress.md` → `backend/CLAUDE.md` + `frontend/CLAUDE.md`.
 
-**Status:** approved plan, not yet implemented.
+**Status:** phases 1, 2, and 3 delivered. Email magic-link implementation notes live in `docs/plans/email-magic-link-auth.md`.
 **Owner:** unassigned.
 **Last updated:** 2026-05-28.
 
@@ -552,14 +552,14 @@ Original sketch retained below for the record (and for Phase 3 reference).
 
 ---
 
-## 9. Phase 3 — sketch (email magic-link, future)
+## 9. Phase 3 — DELIVERED 2026-05-29
 
-- Same `User` aggregate. Add `ExternalLogin("email", <email>)` for users who sign up by email.
-- New `AddEmailMagicLink` flow: POST `/auth/email/request` → server emits a signed short-lived token via email; GET `/auth/email/callback?token=...` validates + signs the cookie in.
-- Email transport: defer choice (Mailtrap for dev, Resend/SES for prod).
-- Migrate `users.logins` JSON column to a child table `user_logins(user_id, provider, subject)` with unique `(provider, subject)` constraint at this point — multi-provider linking benefits from a proper relational model and a unique index.
-- Frontend: second button "Sign in with email" → form with email field → "check your inbox" confirmation.
-- All Phase 1 + Phase 2 plumbing carries over unchanged.
+- Same `User` aggregate now supports `ExternalLogin("email", <email>)`.
+- POST `/auth/email/request` emits a signed short-lived token via email; GET `/auth/email/callback?token=...` validates + signs the cookie in.
+- Email transport uses MailKit with Gmail SMTP app-password configuration.
+- `users.logins` JSON column was migrated to `user_logins(user_id, provider, subject)` with a unique `(provider, subject)` constraint.
+- Frontend now exposes `Sign Up` and `Login` actions that open the same modal with Google and email magic-link options.
+- Detailed implementation notes live in `docs/plans/email-magic-link-auth.md`.
 
 ---
 

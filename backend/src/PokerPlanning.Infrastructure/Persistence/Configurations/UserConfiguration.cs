@@ -1,6 +1,4 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using PokerPlanning.Domain.Users;
 
@@ -42,43 +40,27 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasColumnName("last_login_at")
             .IsRequired();
 
-        builder.Property<List<ExternalLogin>>("_logins")
-            .HasColumnName("logins")
-            .HasConversion(
-                logins => SerializeLogins(logins),
-                value => DeserializeLogins(value))
-            .Metadata.SetValueComparer(LoginsComparer);
+        builder.OwnsMany<ExternalLogin>("_logins", login =>
+        {
+            login.ToTable("user_logins");
+            login.WithOwner().HasForeignKey("user_id");
+
+            login.Property(l => l.Provider)
+                .HasColumnName("provider")
+                .HasMaxLength(ExternalLogin.MaxProviderLength)
+                .IsRequired();
+
+            login.Property(l => l.Subject)
+                .HasColumnName("subject")
+                .HasMaxLength(ExternalLogin.MaxSubjectLength)
+                .IsRequired();
+
+            login.HasKey("user_id", nameof(ExternalLogin.Provider), nameof(ExternalLogin.Subject));
+            login.HasIndex(l => new { l.Provider, l.Subject }).IsUnique();
+        });
 
         builder.Ignore(u => u.Logins);
         builder.Ignore(u => u.DomainEvents);
+        builder.Navigation("_logins").UsePropertyAccessMode(PropertyAccessMode.Field);
     }
-
-    private static readonly ValueComparer<List<ExternalLogin>> LoginsComparer = new(
-        (left, right) => LoginsEqual(left, right),
-        logins => SerializeLogins(logins).GetHashCode(),
-        logins => DeserializeLogins(SerializeLogins(logins)));
-
-    private static bool LoginsEqual(List<ExternalLogin>? left, List<ExternalLogin>? right) =>
-        SerializeLogins(left ?? []) == SerializeLogins(right ?? []);
-
-    private static string SerializeLogins(List<ExternalLogin> logins)
-    {
-        var jsonShape = logins
-            .Select(l => new LoginJson(l.Provider, l.Subject))
-            .OrderBy(l => l.Provider, StringComparer.Ordinal)
-            .ThenBy(l => l.Subject, StringComparer.Ordinal)
-            .ToList();
-        return JsonSerializer.Serialize(jsonShape);
-    }
-
-    private static List<ExternalLogin> DeserializeLogins(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-            return [];
-
-        var jsonShape = JsonSerializer.Deserialize<List<LoginJson>>(json) ?? [];
-        return jsonShape.Select(l => new ExternalLogin(l.Provider, l.Subject)).ToList();
-    }
-
-    private sealed record LoginJson(string Provider, string Subject);
 }

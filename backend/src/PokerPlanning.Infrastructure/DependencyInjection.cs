@@ -1,9 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using PokerPlanning.Application.Abstractions.Email;
 using PokerPlanning.Application.Abstractions.LiveState;
 using PokerPlanning.Application.Abstractions.Persistence;
 using PokerPlanning.Application.Abstractions.Security;
 using PokerPlanning.Application.Abstractions.Time;
+using PokerPlanning.Infrastructure.Email;
 using PokerPlanning.Infrastructure.LiveState;
 using PokerPlanning.Infrastructure.Persistence;
 using PokerPlanning.Infrastructure.Security;
@@ -17,6 +19,8 @@ public static class DependencyInjection
     {
         services.AddScoped<IRoomRepository, RoomRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IEmailLoginTokenRepository, EmailLoginTokenRepository>();
+        services.AddScoped<IEmailSender, GmailSmtpEmailSender>();
         services.AddSingleton<IRoomLiveStateStore, RedisRoomLiveStateStore>();
         services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
         services.AddSingleton<IClock, SystemClock>();

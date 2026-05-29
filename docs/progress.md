@@ -2,7 +2,7 @@
 
 > Living status doc. Any agent (human or AI) reads this after `CLAUDE.md` + `docs/domain-model.md` to know what exists, what's broken, and what's next. Update at the **end of each slice**.
 
-Last updated: 2026-05-28 (production custom domain cutover prep)
+Last updated: 2026-05-29 (email magic-link auth)
 
 ---
 
@@ -229,6 +229,14 @@ Last updated: 2026-05-28 (production custom domain cutover prep)
 - Open Google sign-in third-party-cookie bug doc now records the chosen custom-domain remediation
 - Remaining out-of-repo work: update Fly CORS secret and Google OAuth client settings through their dashboards, then redeploy frontend
 
+### Email magic-link auth + Login/Sign Up modal
+- Domain/Application: added email provider support for `ExternalLogin`, one-time email login tokens, provider linking by normalized email, and request/consume email-login command slices
+- Infrastructure: migrated user external logins from `users.logins` JSON text to relational `user_logins` with unique `(provider, subject)`; added `email_login_tokens`; added MailKit-backed Gmail SMTP sender
+- Api: added `POST /auth/email/request` and `GET /auth/email/callback?token=...`; callback validates one-time tokens, links/creates the user, signs the existing `pp.auth` cookie, and redirects to the validated frontend return URL
+- Frontend: replaced anonymous app-bar `Sign in with Google` with `Sign Up` and `Login` actions; added dark auth modal with Google and email magic-link flows plus check-your-inbox state
+- Docs: updated identity model and deployment SMTP configuration notes
+- Verification: `dotnet build backend/src/PokerPlanning.Api/PokerPlanning.Api.csproj -o .codex-run/build-api` and `npm run build` pass
+
 ---
 
 ## In progress / blocked
@@ -239,11 +247,7 @@ No active blockers.
 
 ## Next (priority order)
 
-1. **Google sign-in Phase 3** — email magic-link provider (`docs/plans/google-signin.md` §9):
-   - Add `ExternalLogin("email", <email>)` and migrate `users.logins` JSON column to a `user_logins(user_id, provider, subject)` child table with unique `(provider, subject)` index.
-   - New flow: `POST /auth/email/request` issues a signed short-lived token via email; `GET /auth/email/callback?token=...` validates and signs the cookie in.
-   - Pick a dev email transport (Mailtrap) and a prod transport (Resend / SES) before scoping the slice further.
-2. **History detail polish** — show more useful completed-round detail after the first UX polish slice:
+1. **History detail polish** — show more useful completed-round detail after the first UX polish slice:
    - Display vote breakdown with participant names/cards, not only final estimate and vote count.
    - Consider completed/ended timestamp or duration if already available through the API; avoid schema changes unless intentionally scoped.
 

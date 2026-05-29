@@ -78,6 +78,10 @@ Set via `fly secrets set "KEY=value"` (run from `backend/`). Double underscore `
 | `Cors__AllowedWildcardOrigins__0` | `Cors:AllowedWildcardOrigins[0]` | Optional wildcard origins; app default allows `https://*.easypokerplanning.pages.dev` for Cloudflare preview deployments |
 | `Authentication__Google__ClientId` | `Authentication:Google:ClientId` | Google Cloud Console → Credentials → OAuth client ID (Web). When unset, Google sign-in is disabled and `/auth/google/login` returns 503. |
 | `Authentication__Google__ClientSecret` | `Authentication:Google:ClientSecret` | Same client; secret half. Never log or commit. |
+| `Email__Smtp__FromEmail` | `Email:Smtp:FromEmail` | Dedicated Gmail address used as the sender. |
+| `Email__Smtp__UserName` | `Email:Smtp:UserName` | Usually the same Gmail address as `FromEmail`. |
+| `Email__Smtp__Password` | `Email:Smtp:Password` | Gmail app password from the sender account. Never log or commit. |
+| `Email__Smtp__FromName` | `Email:Smtp:FromName` | Optional sender display name; app default is `Easy Poker`. |
 
 List current secrets (values hidden):
 ```powershell
@@ -98,7 +102,7 @@ npm start
 ```
 
 Local secrets live in:
-- **.NET user-secrets** for `PokerPlanning.Api` — `MediatR:LicenseKey`, `Authentication:Google:ClientId`, `Authentication:Google:ClientSecret` set via `dotnet user-secrets`
+- **.NET user-secrets** for `PokerPlanning.Api` — `MediatR:LicenseKey`, `Authentication:Google:ClientId`, `Authentication:Google:ClientSecret`, and `Email:Smtp:*` values set via `dotnet user-secrets`
 - **`.env`** at repo root (gitignored) — `MEDIATR_LICENSE_KEY` for docker-compose
 
 ## Docker compose (local prod-like test)
@@ -146,7 +150,7 @@ git push origin main
 - GitHub → **Actions** tab → pick `Fly Deploy` or `Pages Deploy` → **Run workflow** → branch `main` → **Run**
 
 ### Database migration
-- Add EF migration: `dotnet ef migrations add <Name> --project backend/src/PokerPlanning.Infrastructure --startup-project backend/src/PokerPlanning.Api`
+- Add EF migration: `dotnet ef migrations add <Name> --project backend/src/PokerPlanning.Infrastructure --startup-project backend/src/PokerPlanning.Infrastructure --output-dir Persistence/Migrations`
 - Commit + push under `backend/**`
 - `fly-deploy.yml` redeploys; migration applies automatically on startup (see `Program.cs`)
 
@@ -188,9 +192,27 @@ Single OAuth Client ID in Google Cloud Console can serve dev + prod. After creat
    fly secrets set "Authentication__Google__ClientId=<client-id>" "Authentication__Google__ClientSecret=<client-secret>"
    ```
    Fly restarts the VM automatically.
-5. Verify: open `https://poker-planning-online.site`, click Sign in. Google consent → land back on Pages with avatar in app bar.
+5. Verify: open `https://poker-planning-online.site`, click `Login`, then choose Google. Google consent → land back on Pages with avatar in app bar.
 
 OAuth consent screen stays in **Testing** while only the owner's Google account uses it; add additional Google emails under Test users to allow other testers without going through verification.
+
+## Gmail magic-link setup
+
+Email login uses SMTP through a dedicated Gmail account. Enable 2-step verification on that Gmail account, create an app password, then configure the API:
+
+```powershell
+dotnet user-secrets --project backend/src/PokerPlanning.Api set "Email:Smtp:FromEmail" "<gmail-address>"
+dotnet user-secrets --project backend/src/PokerPlanning.Api set "Email:Smtp:UserName" "<gmail-address>"
+dotnet user-secrets --project backend/src/PokerPlanning.Api set "Email:Smtp:Password" "<gmail-app-password>"
+dotnet user-secrets --project backend/src/PokerPlanning.Api set "Email:Smtp:FromName" "Easy Poker"
+```
+
+Production Fly secrets:
+
+```powershell
+cd backend
+fly secrets set "Email__Smtp__FromEmail=<gmail-address>" "Email__Smtp__UserName=<gmail-address>" "Email__Smtp__Password=<gmail-app-password>" "Email__Smtp__FromName=Easy Poker"
+```
 
 ## Cost
 

@@ -31,6 +31,23 @@ public sealed class SignInWithGoogleHandler(IUserRepository users, IClock clock)
             return Result.Success(ToDto(existing));
         }
 
+        var sameEmailUser = await users.GetByEmailAsync(cmd.Email, ct);
+        if (sameEmailUser is not null)
+        {
+            var linkResult = sameEmailUser.LinkExternalLogin(
+                new ExternalLogin(ExternalLogin.GoogleProvider, cmd.GoogleSubject));
+            if (linkResult.IsFailure)
+                return Result.Failure<UserDto>(linkResult.Error);
+
+            var updateResult = sameEmailUser.UpdateProfile(cmd.Name, cmd.Picture);
+            if (updateResult.IsFailure)
+                return Result.Failure<UserDto>(updateResult.Error);
+
+            sameEmailUser.RecordLogin(now);
+            await users.SaveChangesAsync(ct);
+            return Result.Success(ToDto(sameEmailUser));
+        }
+
         var createResult = User.Create(
             cmd.Email,
             cmd.Name,

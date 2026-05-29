@@ -6,7 +6,11 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using PokerPlanning.Application.Features.ConsumeEmailLoginToken;
 using PokerPlanning.Application.Features.GetCurrentUser;
+using PokerPlanning.Application.Features.RequestEmailLogin;
+using PokerPlanning.Application.Features.Users;
+using PokerPlanning.Domain.Users;
 
 namespace PokerPlanning.Api.Endpoints;
 
@@ -29,6 +33,16 @@ public static class AuthEndpoints
         group.MapPost("logout", Logout)
             .WithName("Logout")
             .WithSummary("Sign the caller out and clear the auth cookie.")
+            .AllowAnonymous();
+
+        group.MapPost("email/request", RequestEmailLogin)
+            .WithName("RequestEmailLogin")
+            .WithSummary("Send a one-time email magic link.")
+            .AllowAnonymous();
+
+        group.MapGet("email/callback", ConsumeEmailLoginToken)
+            .WithName("ConsumeEmailLoginToken")
+            .WithSummary("Consume an email magic link and sign in.")
             .AllowAnonymous();
 
         return app;
@@ -86,6 +100,68 @@ public static class AuthEndpoints
         return Results.NoContent();
     }
 
+    private static async Task<IResult> RequestEmailLogin(
+        EmailLoginRequest request,
+        HttpContext http,
+        IMediator mediator,
+        AllowedFrontendOrigins origins,
+        CancellationToken ct)
+    {
+        var returnUrl = ResolveReturnUrl(request.ReturnUrl, origins);
+        var callbackBaseUrl = BuildAbsoluteUrl(http, "/auth/email/callback");
+        var result = await mediator.Send(
+            new RequestEmailLoginCommand(
+                request.Mode,
+                request.Email,
+                request.DisplayName,
+                returnUrl,
+                callbackBaseUrl),
+            ct);
+
+        if (result.IsFailure)
+        {
+            return Results.Problem(
+                detail: result.Error.Message,
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Email sign-in request invalid",
+                type: result.Error.Code);
+        }
+
+        return Results.Accepted();
+    }
+
+    private static async Task<IResult> ConsumeEmailLoginToken(
+        string? token,
+        HttpContext http,
+        IMediator mediator,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return Results.Problem(
+                detail: EmailLoginTokenErrors.InvalidToken.Message,
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Invalid login link",
+                type: EmailLoginTokenErrors.InvalidToken.Code);
+        }
+
+        var result = await mediator.Send(new ConsumeEmailLoginTokenCommand(token), ct);
+        if (result.IsFailure)
+        {
+            return Results.Problem(
+                detail: result.Error.Message,
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Invalid login link",
+                type: result.Error.Code);
+        }
+
+        await http.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            CreatePrincipal(result.Value.User));
+
+        return Results.Redirect(result.Value.ReturnUrl);
+    }
+
     private static string ResolveReturnUrl(string? returnUrl, AllowedFrontendOrigins origins)
     {
         var fallback = origins.Exact.FirstOrDefault() ?? "/";
@@ -124,6 +200,24 @@ public static class AuthEndpoints
         return uri.Host.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)
             && uri.Host.Length > suffix.Length;
     }
+
+    private static string BuildAbsoluteUrl(HttpContext http, string path) =>
+        $"{http.Request.Scheme}://{http.Request.Host}{http.Request.PathBase}{path}";
+
+    private static ClaimsPrincipal CreatePrincipal(UserDto user)
+    {
+        var identity = new ClaimsIdentity(
+            authenticationType: CookieAuthenticationDefaults.AuthenticationScheme,
+            nameType: ClaimTypes.Name,
+            roleType: ClaimTypes.Role);
+        identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()));
+        identity.AddClaim(new Claim(ClaimTypes.Email, user.Email));
+        identity.AddClaim(new Claim(ClaimTypes.Name, user.DisplayName));
+        if (!string.IsNullOrEmpty(user.AvatarUrl))
+            identity.AddClaim(new Claim("picture", user.AvatarUrl));
+
+        return new ClaimsPrincipal(identity);
+    }
 }
 
 public sealed record CurrentUserResponse(
@@ -131,3 +225,9 @@ public sealed record CurrentUserResponse(
     string Email,
     string DisplayName,
     string? AvatarUrl);
+
+public sealed record EmailLoginRequest(
+    string Mode,
+    string Email,
+    string? DisplayName,
+    string? ReturnUrl);

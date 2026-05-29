@@ -13,6 +13,7 @@ public sealed class PokerPlanningDbContext(
 {
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<EmailLoginToken> EmailLoginTokens => Set<EmailLoginToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -56,7 +56,7 @@ public sealed class User : AggregateRoot
         if (trimmedAvatar is { Length: > MaxAvatarUrlLength })
             return Result.Failure<User>(UserErrors.InvalidAvatarUrl);
 
-        if (string.IsNullOrWhiteSpace(login.Provider) || string.IsNullOrWhiteSpace(login.Subject))
+        if (!IsValidExternalLogin(login))
             return Result.Failure<User>(UserErrors.InvalidExternalLogin);
 
         var user = new User(
@@ -76,6 +76,21 @@ public sealed class User : AggregateRoot
         LastLoginAt = now;
     }
 
+    public bool HasExternalLogin(string provider, string subject) =>
+        _logins.Any(l => l.Provider == provider && l.Subject == subject);
+
+    public Result LinkExternalLogin(ExternalLogin login)
+    {
+        if (!IsValidExternalLogin(login))
+            return Result.Failure(UserErrors.InvalidExternalLogin);
+
+        if (HasExternalLogin(login.Provider, login.Subject))
+            return Result.Success();
+
+        _logins.Add(login);
+        return Result.Success();
+    }
+
     public Result UpdateProfile(string displayName, string? avatarUrl)
     {
         var trimmedName = (displayName ?? string.Empty).Trim();
@@ -91,8 +106,14 @@ public sealed class User : AggregateRoot
         return Result.Success();
     }
 
-    private static string NormalizeEmail(string? email) =>
+    public static string NormalizeEmail(string? email) =>
         string.IsNullOrWhiteSpace(email) ? string.Empty : email.Trim().ToLowerInvariant();
+
+    private static bool IsValidExternalLogin(ExternalLogin login) =>
+        !string.IsNullOrWhiteSpace(login.Provider) &&
+        !string.IsNullOrWhiteSpace(login.Subject) &&
+        login.Provider.Length <= ExternalLogin.MaxProviderLength &&
+        login.Subject.Length <= ExternalLogin.MaxSubjectLength;
 }
 
 public static class UserErrors

@@ -1,13 +1,15 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { AuthDialogComponent, AuthDialogData } from '../../core/auth/auth-dialog.component';
 
 @Component({
   selector: 'pp-app-bar',
-  imports: [RouterLink, MatButtonModule, MatIconModule, MatMenuModule],
+  imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatMenuModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="pp-app-bar">
@@ -49,13 +51,20 @@ import { AuthService } from '../../core/auth/auth.service';
           </mat-menu>
         } @else {
           <button
-            mat-stroked-button
+            mat-button
             type="button"
-            (click)="onSignIn()"
-            class="pp-app-bar__sign-in"
+            (click)="openAuthDialog('signup')"
+            class="pp-app-bar__auth-link"
           >
-            <mat-icon>login</mat-icon>
-            <span>Sign in with Google</span>
+            Sign Up
+          </button>
+          <button
+            mat-button
+            type="button"
+            (click)="openAuthDialog('login')"
+            class="pp-app-bar__auth-link"
+          >
+            Login
           </button>
         }
       </nav>
@@ -64,9 +73,15 @@ import { AuthService } from '../../core/auth/auth.service';
 })
 export class AppBarComponent {
   protected readonly auth = inject(AuthService);
+  private readonly dialog = inject(MatDialog);
 
-  protected onSignIn(): void {
-    this.auth.signInWithGoogle();
+  protected openAuthDialog(mode: AuthDialogData['mode']): void {
+    this.dialog.open(AuthDialogComponent, {
+      panelClass: 'auth-dialog-panel',
+      width: 'min(460px, calc(100vw - 32px))',
+      autoFocus: 'first-tabbable',
+      data: { mode },
+    });
   }
 
   protected onSignOut(): void {

@@ -134,7 +134,8 @@ The `VoteSubmitted` SignalR event carries only `participantId` + a "has voted" f
 
 ## Identity model (Phase 1 + 2)
 - **Anonymous default**: every browser generates a `participantId` (Guid) stored in `localStorage`. Sent on every HTTP request as `X-Participant-Id` header and SignalR query string `participantId=`. This is the **seat identity** — what a Room sees.
-- **Optional Google sign-in**: backend `/auth/google/login` runs ASP.NET Core's cookie + Google handlers; on success an httpOnly `pp.auth` cookie carries the application `UserId` as `sub`. `User` aggregate (Postgres `users` table) stores email, display name, avatar URL, and external logins.
+- **Optional account sign-in**: backend auth uses an httpOnly `pp.auth` cookie carrying the application `UserId` as `sub`. Google OAuth starts at `/auth/google/login`; email magic-link auth starts at `POST /auth/email/request` and completes at `/auth/email/callback?token=...`.
+- **User identity**: `User` aggregate (Postgres `users` table) stores email, display name, avatar URL, and linked external logins in `user_logins`. Supported providers are `google` and `email`. Email magic-link tokens are short-lived, one-time tokens stored hashed in `email_login_tokens`.
 - **Linking semantics**: when a signed-in user creates or joins a room, the backend reads `UserId` from the cookie and records it on the `Participant` row (and on `Room.OwnerUserId` for create). `ParticipantId` stays browser-local; `UserId` is the stable cross-device identity. A new browser produces a new `ParticipantId` but the same `UserId`, so a signed-in user's next join attaches the new seat to their account and their history surfaces both seats.
 - **No retroactive claim**: rooms created or joined while anonymous keep `UserId = null` forever. Signing in afterwards does not back-fill anonymous activity.
 
@@ -142,7 +143,6 @@ The `VoteSubmitted` SignalR event carries only `participantId` + a "has voted" f
 - Multiple card decks (Fibonacci only)
 - Story tracking / ticket integration (only round titles)
 - Ownership transfer
-- Multi-provider sign-in (only Google in v1; email magic-link planned for Phase 3)
 - Claiming existing anonymous rooms after a user signs up (not retroactive)
 - Ownership transfer between users
 - Real password recovery (passwords are room-specific; lose it, you re-create the room)
