@@ -1,6 +1,7 @@
 using MediatR;
 using PokerPlanning.Application.Abstractions.Persistence;
 using PokerPlanning.Domain.Common;
+using PokerPlanning.Domain.Participants;
 using PokerPlanning.Domain.Rooms;
 using PokerPlanning.Domain.Users;
 
@@ -14,6 +15,25 @@ public sealed class GetRoomHandler(IRoomRepository rooms, IUserRepository users)
         var room = await rooms.GetByIdAsync(new RoomId(query.RoomId), ct);
         if (room is null)
             return Result.Failure<GetRoomResult>(RoomErrors.NotFound);
+
+        // Callers without a valid seat token only get a minimal preview so they can render
+        // the join screen (name + whether a password is required). Participants, owner/
+        // moderator ids, and round state are never exposed before access is proven.
+        var hasCurrentSeat = query.HasAccess
+            && query.CallerParticipantId != Guid.Empty
+            && room.HasParticipant(new ParticipantId(query.CallerParticipantId));
+
+        if (!hasCurrentSeat)
+        {
+            return Result.Success(new GetRoomResult(
+                room.Id.Value,
+                room.Name,
+                Guid.Empty,
+                room.IsPasswordProtected,
+                [],
+                [],
+                null));
+        }
 
         var avatars = new Dictionary<UserId, string?>();
         var userIds = room.Participants

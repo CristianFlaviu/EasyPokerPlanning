@@ -11,6 +11,7 @@ import { AuthService } from './core/auth/auth.service';
 import { credentialsInterceptor } from './core/http/credentials.interceptor';
 import { errorInterceptor } from './core/http/error.interceptor';
 import { participantIdInterceptor } from './core/http/participant-id.interceptor';
+import { roomTokenInterceptor } from './core/http/room-token.interceptor';
 
 import { routes } from './app.routes';
 
@@ -22,6 +23,7 @@ export const appConfig: ApplicationConfig = {
       withInterceptors([
         credentialsInterceptor,
         participantIdInterceptor,
+        roomTokenInterceptor,
         errorInterceptor,
       ]),
     ),

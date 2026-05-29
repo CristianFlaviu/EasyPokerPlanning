@@ -73,6 +73,7 @@ Set via `fly secrets set "KEY=value"` (run from `backend/`). Double underscore `
 |--------|---------|-------|
 | `ConnectionStrings__postgres` | `ConnectionStrings:postgres` | Npgsql format, `SslMode=Require` |
 | `ConnectionStrings__redis` | `ConnectionStrings:redis` | StackExchange.Redis format with `ssl=True` |
+| `RoomAccessToken__Secret` | `RoomAccessToken:Secret` | HMAC secret for per-room seat tokens. Required outside Development; use a long random value. |
 | `MediatR__LicenseKey` | `MediatR:LicenseKey` | Lucky Penny Software JWT |
 | `Cors__AllowedOrigins__0` | `Cors:AllowedOrigins[0]` | Exact origins, currently `https://poker-planning-online.site` |
 | `Cors__AllowedWildcardOrigins__0` | `Cors:AllowedWildcardOrigins[0]` | Optional wildcard origins; app default allows `https://*.easypokerplanning.pages.dev` for Cloudflare preview deployments |

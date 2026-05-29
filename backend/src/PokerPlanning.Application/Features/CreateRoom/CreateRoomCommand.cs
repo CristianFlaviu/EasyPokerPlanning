@@ -10,4 +10,4 @@ public sealed record CreateRoomCommand(
     string OwnerDisplayName,
     Guid? OwnerUserId = null) : IRequest<Result<CreateRoomResult>>;
 
-public sealed record CreateRoomResult(Guid RoomId, Guid OwnerParticipantId);
+public sealed record CreateRoomResult(Guid RoomId, Guid OwnerParticipantId, string AccessToken);

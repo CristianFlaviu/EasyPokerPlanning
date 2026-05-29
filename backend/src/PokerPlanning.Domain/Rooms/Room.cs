@@ -45,6 +45,12 @@ public sealed class Room : AggregateRoot
 
     public bool IsPasswordProtected => PasswordHash is not null;
 
+    public bool HasParticipant(ParticipantId participantId) =>
+        _participants.Any(p => p.Id == participantId);
+
+    public bool HasUserAccess(UserId userId) =>
+        OwnerUserId == userId || _participants.Any(p => p.UserId == userId);
+
     public void RestoreCurrentRound(Round? round)
     {
         CurrentRound = round;
@@ -76,11 +82,15 @@ public sealed class Room : AggregateRoot
         string displayName,
         ParticipantRole role,
         DateTimeOffset now,
-        UserId? userId = null)
+        UserId? userId = null,
+        bool allowExistingSeat = false)
     {
         var existing = _participants.FirstOrDefault(p => p.Id == participantId);
         if (existing is not null)
         {
+            if (!allowExistingSeat)
+                return Result.Failure(RoomErrors.SeatReserved);
+
             var renameResult = existing.Rename(displayName);
             if (renameResult.IsFailure)
                 return renameResult;
@@ -91,6 +101,11 @@ public sealed class Room : AggregateRoot
             RaiseDomainEvent(new ParticipantJoinedEvent(Id, participantId, existing.DisplayName, existing.Role, existing.UserId, now));
             return Result.Success();
         }
+
+        // Defensive guard: owner/moderator ids should already be present, but privileged
+        // seats must never be claimable through a fresh join.
+        if (participantId == OwnerId || _moderatorIds.Contains(participantId))
+            return Result.Failure(RoomErrors.SeatReserved);
 
         var participantResult = Participant.Create(participantId, displayName, role, now, userId);
         if (participantResult.IsFailure)
@@ -321,4 +336,8 @@ public static class RoomErrors
     public static readonly Error OwnerCannotBeRemoved = new(
         "Room.OwnerCannotBeRemoved",
         "The room owner cannot be removed from the table.");
+
+    public static readonly Error SeatReserved = new(
+        "Room.SeatReserved",
+        "This seat is reserved and cannot be joined.");
 }

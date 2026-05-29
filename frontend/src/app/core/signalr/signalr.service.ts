@@ -6,7 +6,7 @@ import {
   LogLevel,
 } from '@microsoft/signalr';
 import { environment } from '../../../environments/environment';
-import { IdentityService } from '../identity/identity.service';
+import { RoomAccessService } from '../identity/room-access.service';
 import { CurrentRound, Participant, RoomId, Vote } from '../../domain/room';
 
 type ConnectionState = 'connecting' | 'connected' | 'disconnected';
@@ -60,7 +60,7 @@ interface RevealedVoteMessage {
 
 @Injectable({ providedIn: 'root' })
 export class SignalRService {
-  private readonly identity = inject(IdentityService);
+  private readonly roomAccess = inject(RoomAccessService);
   private connection: HubConnection | null = null;
   private activeRoomId: RoomId | null = null;
 
@@ -112,10 +112,10 @@ export class SignalRService {
     this.connectionState.set('connecting');
 
     this.connection = new HubConnectionBuilder()
-      .withUrl(
-        `${environment.apiBaseUrl}/hubs/rooms?participantId=${this.identity.participantId}`,
-        { withCredentials: true },
-      )
+      .withUrl(`${environment.apiBaseUrl}/hubs/rooms`, {
+        withCredentials: true,
+        accessTokenFactory: () => this.roomAccess.getToken(roomId) ?? '',
+      })
       .withAutomaticReconnect()
       .configureLogging(LogLevel.Information)
       .build();
@@ -258,10 +258,6 @@ export class SignalRService {
 
     await connection.stop();
     this.connectionState.set('disconnected');
-  }
-
-  async rejoinActiveRoomGroup(): Promise<void> {
-    await this.joinActiveRoom();
   }
 
   private async joinActiveRoom(): Promise<void> {

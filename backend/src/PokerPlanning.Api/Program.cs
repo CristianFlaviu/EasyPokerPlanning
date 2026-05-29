@@ -29,7 +29,11 @@ builder.AddNpgsqlDbContext<PokerPlanningDbContext>(
 builder.AddRedisClient("redis");
 
 builder.Services.AddApplication(builder.Configuration["MediatR:LicenseKey"]);
-builder.Services.AddInfrastructure();
+var roomAccessTokenSecret = builder.Configuration["RoomAccessToken:Secret"];
+if (!builder.Environment.IsDevelopment() && string.IsNullOrWhiteSpace(roomAccessTokenSecret))
+    throw new InvalidOperationException("RoomAccessToken:Secret must be configured outside Development.");
+
+builder.Services.AddInfrastructure(roomAccessTokenSecret);
 builder.Services.AddSignalR();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUserContext, UserContext>();

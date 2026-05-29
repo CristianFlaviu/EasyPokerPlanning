@@ -2,7 +2,9 @@ using System.Reflection;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using PokerPlanning.Application.Abstractions.Security;
 using PokerPlanning.Application.Behaviors;
+using PokerPlanning.Application.Security;
 
 namespace PokerPlanning.Application;
 
@@ -22,6 +24,7 @@ public static class DependencyInjection
         });
         services.AddValidatorsFromAssembly(assembly, includeInternalTypes: true);
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+        services.AddScoped<IRoomAccessAuthorizer, RoomAccessAuthorizer>();
 
         return services;
     }

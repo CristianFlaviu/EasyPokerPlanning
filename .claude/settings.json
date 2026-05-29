@@ -36,7 +36,11 @@
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
       "Bash(dotnet ef *)",
-      "Bash(git ls-files *)"
+      "Bash(git ls-files *)",
+      "Bash(grep -nE \"Exception|error:|fail:|ParticipantJoined|JoinRoom|at PokerPlanning\" /tmp/apphost.log | tail -40)",
+      "Read(//tmp/**)",
+      "Read(//c/Users/cristianflaviu/AppData/Local/Temp/aspire-dcp0gvvfsin.v4n/**)",
+      "Bash(sort -k5 -n)"
     ]
   }
 }

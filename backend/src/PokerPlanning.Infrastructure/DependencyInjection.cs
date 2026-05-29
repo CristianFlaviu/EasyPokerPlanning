@@ -17,7 +17,13 @@ namespace PokerPlanning.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services)
+    // Development-only fallback. Production (Fly) must set RoomAccessToken:Secret.
+    private const string DevRoomAccessTokenSecret =
+        "dev-only-room-access-token-secret-change-me-in-production";
+
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services,
+        string? roomAccessTokenSecret = null)
     {
         services.AddScoped<IRoomRepository, RoomRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
@@ -27,6 +33,11 @@ public static class DependencyInjection
         services.AddSingleton<IRoomLiveStateStore, RedisRoomLiveStateStore>();
         services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
         services.AddSingleton<IClock, SystemClock>();
+        services.AddSingleton<IRoomAccessTokenService>(
+            new HmacRoomAccessTokenService(
+                string.IsNullOrWhiteSpace(roomAccessTokenSecret)
+                    ? DevRoomAccessTokenSecret
+                    : roomAccessTokenSecret));
         return services;
     }
 }

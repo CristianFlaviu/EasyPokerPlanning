@@ -6,8 +6,8 @@ Last reviewed: 2026-05-29 (Codex backend review)
 
 | # | Severity | Title | Status |
 |---|----------|-------|--------|
-| 1 | Critical | Client-asserted participant identity enables room takeover | open |
-| 2 | Critical | Password-protected rooms are readable/joinable over non-join paths | open |
+| 1 | Critical | Client-asserted participant identity enables room takeover | fixed |
+| 2 | Critical | Password-protected rooms are readable/joinable over non-join paths | fixed |
 | 3 | High | Concurrent votes can overwrite each other in Redis | open |
 | 4 | High | Postgres/Redis dual-write can resurrect ended rounds | open |
 | 5 | Medium | History/user lookup queries load too much data into memory | open |
@@ -51,6 +51,18 @@ This is still worth fixing even if the app has no valuable data: it is the easie
 4. Keep participant IDs as public UI identifiers only if they are no longer authorization credentials.
 5. Add domain or handler enforcement for caller-only actions such as `ChangeRole`.
 
+**Resolution (2026-05-29).** Implemented a stateless, server-signed per-room **seat token**
+(HMAC-SHA256 over `roomId:participantId:issuedAt`, `IRoomAccessTokenService` /
+`HmacRoomAccessTokenService`). Issued on create/join, returned in the response body.
+- Every mutating room action and `ChangeRole`/`Leave`/`Remove`/`Promote`/`Demote` now derives
+  the caller from the token (`X-Room-Token` header), never from body/header/query GUIDs. The
+  `CallerParticipantId` / `ParticipantId` override fields were removed from action request bodies.
+- `ChangeRole` is now strictly "me": the caller can only change their own role (token-derived id).
+- `Room.AddParticipant` rejects any join that targets an existing seat unless the caller already
+  holds that seat's valid token, closing the "join with a known participant id to mint its token"
+  takeover vector.
+- Participant IDs remain public UI identifiers but are no longer authorization credentials.
+
 ---
 
 ## 2. Critical: Password-protected rooms are readable/joinable over non-join paths
@@ -73,6 +85,19 @@ This matters because "password-protected room" is a user-facing promise. Even fo
 1. Treat successful create/join as the only way to receive a room access token.
 2. Require that token on `GET /rooms/{id}`, room history, mutations, and SignalR `JoinRoomGroup`.
 3. For password-protected rooms, return only a minimal "password required" response until access is proven.
+
+**Resolution (2026-05-29).** The seat token from #1 is the only way to read full room state.
+- `GET /rooms/{id}` without a valid token returns a **minimal preview** only — room name and
+  `isPasswordProtected`. Participants, owner/moderator ids, and round state are withheld
+  (`GetRoomHandler` short-circuits on `!HasAccess`), so the join screen can render without leaking.
+- `GET /rooms/{id}/history` now requires either a valid current seat token or the signed-in
+  account being linked to the room, so returning users can review completed sessions without
+  rejoining.
+- `RoomHub.JoinRoomGroup` validates the token (via SignalR `accessTokenFactory` → `access_token`
+  query / `X-Room-Token`) against the requested room and confirms the seat is still a current
+  participant before adding the connection to the group.
+- Frontend stores the token per room (`pp.roomToken.{id}`), attaches it via the
+  `roomTokenInterceptor`, and only opens the live connection once a token is held.
 
 ---
 
@@ -258,8 +283,8 @@ Alternatively add optimistic versioning/CAS around the JSON blob.
 
 For this app's realistic risk profile, do not block launch on broad internet-abuse items like email rate limiting. Do block on:
 
-1. Fixing participant identity so room actions cannot be authorized by a caller-supplied GUID.
-2. Making password-protected rooms actually require successful join/access for room reads, history, and SignalR group membership.
-3. Fixing concurrent vote overwrites if you expect more than one participant to vote at nearly the same time.
+1. ~~Fixing participant identity so room actions cannot be authorized by a caller-supplied GUID.~~ **Done** (see #1 resolution).
+2. ~~Making password-protected rooms actually require successful join/access for room reads, history, and SignalR group membership.~~ **Done** (see #2 resolution).
+3. Fixing concurrent vote overwrites if you expect more than one participant to vote at nearly the same time. *(still open — issue #3)*
 
 Everything else can be treated as post-launch hardening or accepted portfolio-project tradeoff.

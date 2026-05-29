@@ -12,6 +12,7 @@ namespace PokerPlanning.Application.Features.CreateRoom;
 public sealed class CreateRoomHandler(
     IRoomRepository rooms,
     IPasswordHasher passwordHasher,
+    IRoomAccessTokenService accessTokens,
     IClock clock)
     : IRequestHandler<CreateRoomCommand, Result<CreateRoomResult>>
 {
@@ -39,6 +40,7 @@ public sealed class CreateRoomHandler(
         await rooms.AddAsync(room, ct);
         await rooms.SaveChangesAsync(ct);
 
-        return Result.Success(new CreateRoomResult(room.Id.Value, ownerId.Value));
+        var accessToken = accessTokens.Issue(room.Id, ownerId);
+        return Result.Success(new CreateRoomResult(room.Id.Value, ownerId.Value, accessToken));
     }
 }

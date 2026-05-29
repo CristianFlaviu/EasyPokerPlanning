@@ -1,6 +1,6 @@
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace PokerPlanning.Infrastructure.Persistence;
 
@@ -14,18 +14,26 @@ public sealed class PokerPlanningDbContextFactory : IDesignTimeDbContextFactory<
                 npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "poker"))
             .Options;
 
-        return new PokerPlanningDbContext(options, new NoopPublisher());
+        // Design-time only (migrations); domain-event publishing never runs here.
+        return new PokerPlanningDbContext(options, new NoopScopeFactory());
     }
 
-    private sealed class NoopPublisher : IPublisher
+    private sealed class NoopScopeFactory : IServiceScopeFactory
     {
-        public Task Publish(object notification, CancellationToken cancellationToken = default) =>
-            Task.CompletedTask;
+        public IServiceScope CreateScope() => new NoopScope();
 
-        public Task Publish<TNotification>(
-            TNotification notification,
-            CancellationToken cancellationToken = default)
-            where TNotification : INotification =>
-            Task.CompletedTask;
+        private sealed class NoopScope : IServiceScope
+        {
+            public IServiceProvider ServiceProvider { get; } = new EmptyProvider();
+
+            public void Dispose()
+            {
+            }
+        }
+
+        private sealed class EmptyProvider : IServiceProvider
+        {
+            public object? GetService(Type serviceType) => null;
+        }
     }
 }

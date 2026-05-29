@@ -1,7 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { RoomAccessService } from '../../core/identity/room-access.service';
 import { Card, ParticipantId, ParticipantRole, Room, RoomId } from '../../domain/room';
 
 export interface CreateRoomRequest {
@@ -13,6 +14,7 @@ export interface CreateRoomRequest {
 export interface CreateRoomResponse {
   readonly roomId: RoomId;
   readonly ownerParticipantId: ParticipantId;
+  readonly accessToken: string;
 }
 
 export interface JoinRoomRequest {
@@ -24,6 +26,7 @@ export interface JoinRoomRequest {
 export interface JoinRoomResponse {
   readonly roomId: RoomId;
   readonly participantId: ParticipantId;
+  readonly accessToken: string;
 }
 
 export interface StartRoundRequest {
@@ -68,10 +71,13 @@ export interface CompletedVote {
 @Injectable({ providedIn: 'root' })
 export class RoomApiService {
   private readonly http = inject(HttpClient);
+  private readonly roomAccess = inject(RoomAccessService);
   private readonly baseUrl = `${environment.apiBaseUrl}/rooms`;
 
   createRoom(req: CreateRoomRequest): Observable<CreateRoomResponse> {
-    return this.http.post<CreateRoomResponse>(this.baseUrl, req);
+    return this.http.post<CreateRoomResponse>(this.baseUrl, req).pipe(
+      tap((res) => this.roomAccess.setToken(res.roomId, res.accessToken)),
+    );
   }
 
   getRoom(roomId: RoomId): Observable<Room> {
@@ -79,7 +85,9 @@ export class RoomApiService {
   }
 
   joinRoom(roomId: RoomId, req: JoinRoomRequest): Observable<JoinRoomResponse> {
-    return this.http.post<JoinRoomResponse>(`${this.baseUrl}/${roomId}/join`, req);
+    return this.http.post<JoinRoomResponse>(`${this.baseUrl}/${roomId}/join`, req).pipe(
+      tap((res) => this.roomAccess.setToken(res.roomId, res.accessToken)),
+    );
   }
 
   startRound(roomId: RoomId, req: StartRoundRequest): Observable<StartRoundResponse> {
@@ -123,7 +131,9 @@ export class RoomApiService {
   }
 
   leaveRoom(roomId: RoomId): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${roomId}/participants/me`);
+    return this.http.delete<void>(`${this.baseUrl}/${roomId}/participants/me`).pipe(
+      tap(() => this.roomAccess.clearToken(roomId)),
+    );
   }
 
   removeParticipant(roomId: RoomId, participantId: ParticipantId): Observable<void> {

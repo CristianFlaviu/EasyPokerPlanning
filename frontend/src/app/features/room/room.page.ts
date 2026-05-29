@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -9,11 +9,12 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { filter, map, switchMap, tap } from 'rxjs';
+import { map } from 'rxjs';
 import { RoomApiService } from '../lobby/room-api.service';
 import { SignalRService } from '../../core/signalr/signalr.service';
 import { IdentityService } from '../../core/identity/identity.service';
-import { Card, FIBONACCI_DECK, ParticipantId, ParticipantRole } from '../../domain/room';
+import { RoomAccessService } from '../../core/identity/room-access.service';
+import { Card, FIBONACCI_DECK, ParticipantId, ParticipantRole, Room, RoomId } from '../../domain/room';
 import { AppBarComponent } from '../../shared/app-bar/app-bar.component';
 import { PlayingCardComponent } from '../../shared/playing-card/playing-card.component';
 import { ShareRoomDialogComponent } from './share-room-dialog.component';
@@ -84,6 +85,7 @@ export class RoomPage {
   private readonly api = inject(RoomApiService);
   private readonly signalr = inject(SignalRService);
   private readonly identity = inject(IdentityService);
+  private readonly roomAccess = inject(RoomAccessService);
   private readonly fb = inject(FormBuilder);
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
@@ -104,21 +106,7 @@ export class RoomPage {
     password: [''],
   });
 
-  protected readonly room = toSignal(
-    this.route.paramMap.pipe(
-      map((p) => p.get('id') ?? ''),
-      filter((id) => id.length > 0),
-      switchMap((id) =>
-        this.api.getRoom(id).pipe(
-          tap((room) => {
-            this.signalr.setParticipants(room.participants);
-            this.signalr.setModeratorIds(room.moderatorIds);
-            this.signalr.setCurrentRound(room.currentRound);
-          }),
-        ),
-      ),
-    ),
-  );
+  protected readonly room = signal<Room | null>(null);
 
   protected readonly canModerate = computed(
     () =>
@@ -369,8 +357,22 @@ export class RoomPage {
         return;
       }
 
-      void this.signalr.connectToRoom(roomId);
+      this.loadRoom(roomId);
+      // Only open the live connection once we hold a seat token; otherwise the hub
+      // rejects the join. A non-joined visitor sees the preview + join form first.
+      if (this.roomAccess.getToken(roomId)) {
+        void this.signalr.connectToRoom(roomId);
+      }
       onCleanup(() => void this.signalr.disconnectFromRoom());
+    });
+  }
+
+  private loadRoom(roomId: RoomId): void {
+    this.api.getRoom(roomId).subscribe((room) => {
+      this.room.set(room);
+      this.signalr.setParticipants(room.participants);
+      this.signalr.setModeratorIds(room.moderatorIds);
+      this.signalr.setCurrentRound(room.currentRound);
     });
   }
 
@@ -430,12 +432,10 @@ export class RoomPage {
         role: 'Voter',
         password: password.length > 0 ? password : null,
       })
-      .pipe(switchMap(() => this.api.getRoom(roomId)))
-      .subscribe((room) => {
-        this.signalr.setParticipants(room.participants);
-        this.signalr.setModeratorIds(room.moderatorIds);
-        this.signalr.setCurrentRound(room.currentRound);
-        void this.signalr.rejoinActiveRoomGroup();
+      .subscribe(() => {
+        // Token is now stored; reload full room state and open the live connection.
+        this.loadRoom(roomId);
+        void this.signalr.connectToRoom(roomId);
       });
   }
 

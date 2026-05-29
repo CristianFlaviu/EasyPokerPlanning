@@ -20,6 +20,7 @@ using PokerPlanning.Application.Features.RevealVotes;
 using PokerPlanning.Application.Features.StartRound;
 using PokerPlanning.Application.Features.SubmitVote;
 using PokerPlanning.Domain.Participants;
+using PokerPlanning.Domain.Rooms;
 
 namespace PokerPlanning.Api.Endpoints;
 
@@ -99,7 +100,9 @@ public static class RoomEndpoints
         IUserContext userContext,
         CancellationToken ct)
     {
-        var participantId = ResolveParticipantId(http, request.OwnerParticipantId);
+        // At creation the caller establishes (claims) their stable cross-room participant id.
+        // It is bound into the returned seat token; from then on the token is the credential.
+        var participantId = ResolveClaimedParticipantId(http, request.OwnerParticipantId);
 
         var command = new CreateRoomCommand(
             request.Name,
@@ -111,29 +114,20 @@ public static class RoomEndpoints
         var result = await mediator.Send(command, ct);
 
         return result.ToHttpResult(value =>
-            TypedResults.Created($"/rooms/{value.RoomId}", new CreateRoomResponse(value.RoomId, value.OwnerParticipantId)));
-    }
-
-    private static Guid ResolveParticipantId(HttpContext http, Guid? fromBody)
-    {
-        if (fromBody is { } id && id != Guid.Empty)
-            return id;
-
-        if (http.Request.Headers.TryGetValue("X-Participant-Id", out var header)
-            && Guid.TryParse(header.ToString(), out var headerId))
-            return headerId;
-
-        return Guid.Empty;
+            TypedResults.Created(
+                $"/rooms/{value.RoomId}",
+                new CreateRoomResponse(value.RoomId, value.OwnerParticipantId, value.AccessToken)));
     }
 
     private static async Task<IResult> GetRoom(
         Guid id,
         IMediator mediator,
         HttpContext http,
+        IRoomAccessTokenService tokens,
         CancellationToken ct)
     {
-        var participantId = ResolveParticipantId(http, null);
-        var result = await mediator.Send(new GetRoomQuery(id, participantId), ct);
+        var hasAccess = TryResolveSeat(http, id, tokens, out var participantId);
+        var result = await mediator.Send(new GetRoomQuery(id, participantId, hasAccess), ct);
 
         return result.ToHttpResult(value =>
             TypedResults.Ok(new GetRoomResponse(
@@ -161,10 +155,14 @@ public static class RoomEndpoints
         JoinRoomRequest request,
         IMediator mediator,
         HttpContext http,
+        IRoomAccessTokenService tokens,
         IUserContext userContext,
         CancellationToken ct)
     {
-        var participantId = ResolveParticipantId(http, request.ParticipantId);
+        var participantId = ResolveClaimedParticipantId(http, request.ParticipantId);
+        var existingSeatConfirmed =
+            TryResolveSeat(http, id, tokens, out var tokenParticipantId)
+            && tokenParticipantId == participantId;
         var role = Enum.TryParse<ParticipantRole>(request.Role, ignoreCase: true, out var parsedRole)
             ? parsedRole
             : (ParticipantRole)(-1);
@@ -175,12 +173,13 @@ public static class RoomEndpoints
             request.DisplayName,
             role,
             request.Password,
+            existingSeatConfirmed,
             userContext.CurrentUserId);
 
         var result = await mediator.Send(command, ct);
 
         return result.ToHttpResult(value =>
-            TypedResults.Ok(new JoinRoomResponse(value.RoomId, value.ParticipantId)));
+            TypedResults.Ok(new JoinRoomResponse(value.RoomId, value.ParticipantId, value.AccessToken)));
     }
 
     private static async Task<IResult> GetParticipantRooms(
@@ -190,7 +189,7 @@ public static class RoomEndpoints
         IUserContext userContext,
         CancellationToken ct)
     {
-        var resolvedParticipantId = ResolveParticipantId(http, participantId);
+        var resolvedParticipantId = ResolveClaimedParticipantId(http, participantId);
         var result = await mediator.Send(
             new GetParticipantRoomsQuery(resolvedParticipantId, userContext.CurrentUserId),
             ct);
@@ -209,9 +208,18 @@ public static class RoomEndpoints
     private static async Task<IResult> GetRoomHistory(
         Guid id,
         IMediator mediator,
+        HttpContext http,
+        IRoomAccessTokenService tokens,
+        IUserContext userContext,
         CancellationToken ct)
     {
-        var result = await mediator.Send(new GetRoomHistoryQuery(id), ct);
+        TryResolveSeat(http, id, tokens, out var participantId);
+        var result = await mediator.Send(
+            new GetRoomHistoryQuery(
+                id,
+                participantId == Guid.Empty ? null : participantId,
+                userContext.CurrentUserId),
+            ct);
 
         return result.ToHttpResult(value =>
             TypedResults.Ok(new RoomHistoryResponse(
@@ -234,9 +242,12 @@ public static class RoomEndpoints
         StartRoundRequest request,
         IMediator mediator,
         HttpContext http,
+        IRoomAccessTokenService tokens,
         CancellationToken ct)
     {
-        var participantId = ResolveParticipantId(http, request.CallerParticipantId);
+        if (!TryResolveSeat(http, id, tokens, out var participantId))
+            return RoomAccessRequired();
+
         var result = await mediator.Send(new StartRoundCommand(id, participantId, request.Title), ct);
 
         return result.ToHttpResult(value =>
@@ -248,9 +259,12 @@ public static class RoomEndpoints
         SubmitVoteRequest request,
         IMediator mediator,
         HttpContext http,
+        IRoomAccessTokenService tokens,
         CancellationToken ct)
     {
-        var participantId = ResolveParticipantId(http, request.ParticipantId);
+        if (!TryResolveSeat(http, id, tokens, out var participantId))
+            return RoomAccessRequired();
+
         var result = await mediator.Send(new SubmitVoteCommand(id, participantId, request.Card), ct);
 
         return result.ToHttpResult(TypedResults.NoContent());
@@ -258,12 +272,14 @@ public static class RoomEndpoints
 
     private static async Task<IResult> RevealVotes(
         Guid id,
-        ModeratorActionRequest request,
         IMediator mediator,
         HttpContext http,
+        IRoomAccessTokenService tokens,
         CancellationToken ct)
     {
-        var participantId = ResolveParticipantId(http, request.CallerParticipantId);
+        if (!TryResolveSeat(http, id, tokens, out var participantId))
+            return RoomAccessRequired();
+
         var result = await mediator.Send(new RevealVotesCommand(id, participantId), ct);
 
         return result.ToHttpResult(TypedResults.NoContent());
@@ -271,12 +287,14 @@ public static class RoomEndpoints
 
     private static async Task<IResult> ResetRound(
         Guid id,
-        ModeratorActionRequest request,
         IMediator mediator,
         HttpContext http,
+        IRoomAccessTokenService tokens,
         CancellationToken ct)
     {
-        var participantId = ResolveParticipantId(http, request.CallerParticipantId);
+        if (!TryResolveSeat(http, id, tokens, out var participantId))
+            return RoomAccessRequired();
+
         var result = await mediator.Send(new ResetRoundCommand(id, participantId), ct);
 
         return result.ToHttpResult(TypedResults.NoContent());
@@ -287,9 +305,12 @@ public static class RoomEndpoints
         EndRoundRequest request,
         IMediator mediator,
         HttpContext http,
+        IRoomAccessTokenService tokens,
         CancellationToken ct)
     {
-        var participantId = ResolveParticipantId(http, request.CallerParticipantId);
+        if (!TryResolveSeat(http, id, tokens, out var participantId))
+            return RoomAccessRequired();
+
         var result = await mediator.Send(new EndRoundCommand(id, participantId, request.FinalEstimate), ct);
 
         return result.ToHttpResult(TypedResults.NoContent());
@@ -300,9 +321,12 @@ public static class RoomEndpoints
         Guid participantId,
         IMediator mediator,
         HttpContext http,
+        IRoomAccessTokenService tokens,
         CancellationToken ct)
     {
-        var callerId = ResolveParticipantId(http, null);
+        if (!TryResolveSeat(http, id, tokens, out var callerId))
+            return RoomAccessRequired();
+
         var result = await mediator.Send(new PromoteModeratorCommand(id, callerId, participantId), ct);
 
         return result.ToHttpResult(TypedResults.NoContent());
@@ -313,9 +337,12 @@ public static class RoomEndpoints
         Guid participantId,
         IMediator mediator,
         HttpContext http,
+        IRoomAccessTokenService tokens,
         CancellationToken ct)
     {
-        var callerId = ResolveParticipantId(http, null);
+        if (!TryResolveSeat(http, id, tokens, out var callerId))
+            return RoomAccessRequired();
+
         var result = await mediator.Send(new DemoteModeratorCommand(id, callerId, participantId), ct);
 
         return result.ToHttpResult(TypedResults.NoContent());
@@ -326,9 +353,13 @@ public static class RoomEndpoints
         ChangeRoleRequest request,
         IMediator mediator,
         HttpContext http,
+        IRoomAccessTokenService tokens,
         CancellationToken ct)
     {
-        var participantId = ResolveParticipantId(http, request.ParticipantId);
+        // "me" endpoint: the caller can only change their own role, derived from the token.
+        if (!TryResolveSeat(http, id, tokens, out var participantId))
+            return RoomAccessRequired();
+
         var role = Enum.TryParse<ParticipantRole>(request.Role, ignoreCase: true, out var parsedRole)
             ? parsedRole
             : (ParticipantRole)(-1);
@@ -342,9 +373,12 @@ public static class RoomEndpoints
         Guid id,
         IMediator mediator,
         HttpContext http,
+        IRoomAccessTokenService tokens,
         CancellationToken ct)
     {
-        var participantId = ResolveParticipantId(http, null);
+        if (!TryResolveSeat(http, id, tokens, out var participantId))
+            return RoomAccessRequired();
+
         var result = await mediator.Send(new LeaveRoomCommand(id, participantId), ct);
 
         return result.ToHttpResult(TypedResults.NoContent());
@@ -355,13 +389,55 @@ public static class RoomEndpoints
         Guid participantId,
         IMediator mediator,
         HttpContext http,
+        IRoomAccessTokenService tokens,
         CancellationToken ct)
     {
-        var callerId = ResolveParticipantId(http, null);
+        if (!TryResolveSeat(http, id, tokens, out var callerId))
+            return RoomAccessRequired();
+
         var result = await mediator.Send(new RemoveParticipantCommand(id, callerId, participantId), ct);
 
         return result.ToHttpResult(TypedResults.NoContent());
     }
+
+    // Resolves the caller's seat from the signed room access token (X-Room-Token header).
+    // Returns false when no valid token is present for this room.
+    private static bool TryResolveSeat(
+        HttpContext http,
+        Guid roomId,
+        IRoomAccessTokenService tokens,
+        out Guid participantId)
+    {
+        participantId = Guid.Empty;
+
+        var token = http.Request.Headers["X-Room-Token"].ToString();
+        if (string.IsNullOrWhiteSpace(token))
+            return false;
+
+        if (!tokens.TryValidate(token, new RoomId(roomId), out var seat))
+            return false;
+
+        participantId = seat.Value;
+        return true;
+    }
+
+    // Identity claim for create/join/history only (not an authorization credential).
+    private static Guid ResolveClaimedParticipantId(HttpContext http, Guid? fromBody)
+    {
+        if (fromBody is { } id && id != Guid.Empty)
+            return id;
+
+        if (http.Request.Headers.TryGetValue("X-Participant-Id", out var header)
+            && Guid.TryParse(header.ToString(), out var headerId))
+            return headerId;
+
+        return Guid.Empty;
+    }
+
+    private static IResult RoomAccessRequired() =>
+        TypedResults.Problem(
+            detail: "A valid room access token is required. Join the room first.",
+            statusCode: StatusCodes.Status401Unauthorized);
 }
 
 public sealed record CreateRoomRequest(
@@ -370,7 +446,7 @@ public sealed record CreateRoomRequest(
     string? Password = null,
     Guid? OwnerParticipantId = null);
 
-public sealed record CreateRoomResponse(Guid RoomId, Guid OwnerParticipantId);
+public sealed record CreateRoomResponse(Guid RoomId, Guid OwnerParticipantId, string AccessToken);
 
 public sealed record JoinRoomRequest(
     string DisplayName,
@@ -378,7 +454,7 @@ public sealed record JoinRoomRequest(
     string? Password = null,
     Guid? ParticipantId = null);
 
-public sealed record JoinRoomResponse(Guid RoomId, Guid ParticipantId);
+public sealed record JoinRoomResponse(Guid RoomId, Guid ParticipantId, string AccessToken);
 
 public sealed record GetRoomResponse(
     Guid Id,
@@ -406,25 +482,15 @@ public sealed record VoteResponse(
     string? Card,
     bool IsRevealed);
 
-public sealed record StartRoundRequest(
-    string? Title = null,
-    Guid? CallerParticipantId = null);
+public sealed record StartRoundRequest(string? Title = null);
 
 public sealed record StartRoundResponse(Guid RoomId, Guid RoundId);
 
-public sealed record SubmitVoteRequest(
-    string Card,
-    Guid? ParticipantId = null);
+public sealed record SubmitVoteRequest(string Card);
 
-public sealed record ModeratorActionRequest(Guid? CallerParticipantId = null);
+public sealed record EndRoundRequest(string? FinalEstimate = null);
 
-public sealed record EndRoundRequest(
-    string? FinalEstimate = null,
-    Guid? CallerParticipantId = null);
-
-public sealed record ChangeRoleRequest(
-    string Role,
-    Guid? ParticipantId = null);
+public sealed record ChangeRoleRequest(string Role);
 
 public sealed record GetParticipantRoomsResponse(
     IReadOnlyList<ParticipantRoomSummaryResponse> Rooms);
