@@ -38,4 +38,11 @@ public interface IRoomNotifier
         ParticipantId participantId,
         ParticipantRole role,
         CancellationToken ct);
+
+    Task ParticipantProfileChangedAsync(
+        RoomId roomId,
+        ParticipantId participantId,
+        string displayName,
+        string? avatarUrl,
+        CancellationToken ct);
 }

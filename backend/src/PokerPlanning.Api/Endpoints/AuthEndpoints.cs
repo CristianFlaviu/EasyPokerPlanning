@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Routing;
 using PokerPlanning.Application.Features.ConsumeEmailLoginToken;
 using PokerPlanning.Application.Features.GetCurrentUser;
 using PokerPlanning.Application.Features.RequestEmailLogin;
+using PokerPlanning.Application.Features.UpdateProfile;
+using PokerPlanning.Application.Features.UploadAvatar;
 using PokerPlanning.Application.Features.Users;
 using PokerPlanning.Domain.Users;
 
@@ -45,7 +47,85 @@ public static class AuthEndpoints
             .WithSummary("Consume an email magic link and sign in.")
             .AllowAnonymous();
 
+        group.MapPost("me/avatar", UploadAvatar)
+            .WithName("UploadAvatar")
+            .WithSummary("Upload a profile picture for the signed-in user.")
+            .RequireAuthorization()
+            .DisableAntiforgery();
+
+        group.MapPut("me/profile", UpdateProfile)
+            .WithName("UpdateProfile")
+            .WithSummary("Update the signed-in user's display name and avatar.")
+            .RequireAuthorization();
+
         return app;
+    }
+
+    private static async Task<IResult> UploadAvatar(
+        IFormFile file,
+        HttpContext http,
+        IMediator mediator,
+        CancellationToken ct)
+    {
+        if (!TryGetUserId(http, out var userId))
+            return Results.Unauthorized();
+
+        await using var stream = file.OpenReadStream();
+        var result = await mediator.Send(
+            new UploadAvatarCommand(userId, stream, file.ContentType, file.Length),
+            ct);
+
+        if (result.IsFailure)
+        {
+            return Results.Problem(
+                detail: result.Error.Message,
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Avatar upload failed",
+                type: result.Error.Code);
+        }
+
+        return Results.Ok(new AvatarUploadResponse(result.Value.AvatarUrl));
+    }
+
+    private static async Task<IResult> UpdateProfile(
+        UpdateProfileRequest request,
+        HttpContext http,
+        IMediator mediator,
+        CancellationToken ct)
+    {
+        if (!TryGetUserId(http, out var userId))
+            return Results.Unauthorized();
+
+        var result = await mediator.Send(
+            new UpdateProfileCommand(userId, request.DisplayName, request.AvatarUrl),
+            ct);
+
+        if (result.IsFailure)
+        {
+            return Results.Problem(
+                detail: result.Error.Message,
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Profile update failed",
+                type: result.Error.Code);
+        }
+
+        // Refresh the auth cookie so name/avatar claims match the updated profile.
+        await http.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            CreatePrincipal(result.Value));
+
+        return Results.Ok(new CurrentUserResponse(
+            result.Value.Id,
+            result.Value.Email,
+            result.Value.DisplayName,
+            result.Value.AvatarUrl));
+    }
+
+    private static bool TryGetUserId(HttpContext http, out Guid userId)
+    {
+        userId = Guid.Empty;
+        var sub = http.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(sub, out userId);
     }
 
     private static IResult GoogleLogin(
@@ -231,3 +311,9 @@ public sealed record EmailLoginRequest(
     string Email,
     string? DisplayName,
     string? ReturnUrl);
+
+public sealed record UpdateProfileRequest(
+    string DisplayName,
+    string? AvatarUrl);
+
+public sealed record AvatarUploadResponse(string AvatarUrl);

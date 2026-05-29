@@ -1,0 +1,120 @@
+.edit-profile {
+  width: min(440px, 100%);
+  padding: 28px 34px 32px;
+  background:
+    linear-gradient(180deg, rgb(42 55 68 / 0.98), rgb(33 45 57 / 0.98)),
+    #24313d;
+  color: #f8fbff;
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 18px;
+
+    h2 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.1;
+      font-weight: 800;
+    }
+
+    button {
+      color: #dbe6f2;
+      margin: -8px -10px 0 0;
+    }
+  }
+
+  &__body {
+    display: grid;
+    gap: 20px;
+  }
+
+  &__avatar {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+  }
+
+  &__avatar-img {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgb(112 183 255 / 0.4);
+  }
+
+  &__avatar-fallback {
+    width: 96px;
+    height: 96px;
+    font-size: 96px;
+    color: #6f8497;
+  }
+
+  &__upload {
+    cursor: pointer;
+
+    [mat-stroked-button] {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+  }
+
+  &__hint {
+    color: #96a8b8;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  &__file-error {
+    color: #ffb4ab;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+:host ::ng-deep {
+  .mat-mdc-form-field {
+    --mdc-outlined-text-field-container-color: rgb(13 24 34 / 0.34);
+    --mdc-outlined-text-field-input-text-color: #f7fbff;
+    --mdc-outlined-text-field-caret-color: #8ec4ff;
+    --mdc-outlined-text-field-label-text-color: #f4f8fc;
+    --mdc-outlined-text-field-focus-label-text-color: #ffffff;
+    --mdc-outlined-text-field-outline-color: #b8c8d7;
+    --mdc-outlined-text-field-hover-outline-color: #edf6ff;
+    --mdc-outlined-text-field-focus-outline-color: #ffffff;
+    --mdc-outlined-text-field-container-shape: 8px;
+    --mat-form-field-error-text-color: #ffb4ab;
+  }
+
+  .mat-mdc-text-field-wrapper {
+    background: rgb(14 26 37 / 0.38);
+  }
+
+  .mat-mdc-input-element {
+    color: #ffffff !important;
+    font-weight: 600;
+  }
+
+  .mdc-floating-label {
+    color: #f4f8fc !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .edit-profile {
+    padding: 22px;
+  }
+}

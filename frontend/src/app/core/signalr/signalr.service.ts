@@ -31,6 +31,12 @@ interface ParticipantRoleChangedMessage {
   readonly role: Participant['role'];
 }
 
+interface ParticipantProfileChangedMessage {
+  readonly participantId: string;
+  readonly displayName: string;
+  readonly avatarUrl: string | null;
+}
+
 interface RoundStartedMessage {
   readonly id: string;
   readonly title: string | null;
@@ -214,6 +220,16 @@ export class SignalRService {
         participants.map((participant) =>
           participant.id === message.participantId
             ? { ...participant, role: message.role }
+            : participant,
+        ),
+      );
+    });
+
+    this.connection.on('ParticipantProfileChanged', (message: ParticipantProfileChangedMessage) => {
+      this.participants.update((participants) =>
+        participants.map((participant) =>
+          participant.id === message.participantId
+            ? { ...participant, displayName: message.displayName, avatarUrl: message.avatarUrl }
             : participant,
         ),
       );

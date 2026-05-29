@@ -91,7 +91,7 @@ public sealed class User : AggregateRoot
         return Result.Success();
     }
 
-    public Result UpdateProfile(string displayName, string? avatarUrl)
+    public Result UpdateProfile(string displayName, string? avatarUrl, DateTimeOffset now)
     {
         var trimmedName = (displayName ?? string.Empty).Trim();
         if (trimmedName.Length is < MinDisplayNameLength or > MaxDisplayNameLength)
@@ -101,8 +101,14 @@ public sealed class User : AggregateRoot
         if (trimmedAvatar is { Length: > MaxAvatarUrlLength })
             return Result.Failure(UserErrors.InvalidAvatarUrl);
 
+        var changed = DisplayName != trimmedName || AvatarUrl != trimmedAvatar;
+
         DisplayName = trimmedName;
         AvatarUrl = trimmedAvatar;
+
+        if (changed)
+            RaiseDomainEvent(new UserProfileUpdatedEvent(Id, DisplayName, AvatarUrl, now));
+
         return Result.Success();
     }
 

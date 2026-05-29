@@ -241,6 +241,16 @@ public sealed class Room : AggregateRoot
         return Result.Success();
     }
 
+    public ParticipantId? UpdateParticipantForUser(UserId userId, string displayName)
+    {
+        var participant = _participants.FirstOrDefault(p => p.UserId == userId);
+        if (participant is null)
+            return null;
+
+        var result = participant.Rename(displayName);
+        return result.IsSuccess ? participant.Id : null;
+    }
+
     public Result LeaveRoom(ParticipantId participantId, DateTimeOffset now)
     {
         if (participantId == OwnerId)

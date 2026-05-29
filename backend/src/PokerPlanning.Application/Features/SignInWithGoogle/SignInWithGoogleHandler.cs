@@ -21,7 +21,7 @@ public sealed class SignInWithGoogleHandler(IUserRepository users, IClock clock)
 
         if (existing is not null)
         {
-            var updateResult = existing.UpdateProfile(cmd.Name, cmd.Picture);
+            var updateResult = existing.UpdateProfile(cmd.Name, cmd.Picture, now);
             if (updateResult.IsFailure)
                 return Result.Failure<UserDto>(updateResult.Error);
 
@@ -39,7 +39,7 @@ public sealed class SignInWithGoogleHandler(IUserRepository users, IClock clock)
             if (linkResult.IsFailure)
                 return Result.Failure<UserDto>(linkResult.Error);
 
-            var updateResult = sameEmailUser.UpdateProfile(cmd.Name, cmd.Picture);
+            var updateResult = sameEmailUser.UpdateProfile(cmd.Name, cmd.Picture, now);
             if (updateResult.IsFailure)
                 return Result.Failure<UserDto>(updateResult.Error);
 

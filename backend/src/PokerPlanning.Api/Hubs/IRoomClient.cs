@@ -12,6 +12,7 @@ public interface IRoomClient
     Task ModeratorPromoted(ModeratorChangedMessage moderator);
     Task ModeratorDemoted(ModeratorChangedMessage moderator);
     Task ParticipantRoleChanged(ParticipantRoleChangedMessage participant);
+    Task ParticipantProfileChanged(ParticipantProfileChangedMessage participant);
 }
 
 public sealed record ParticipantJoinedMessage(
@@ -50,3 +51,8 @@ public sealed record ModeratorChangedMessage(Guid ParticipantId);
 public sealed record ParticipantRoleChangedMessage(
     Guid ParticipantId,
     string Role);
+
+public sealed record ParticipantProfileChangedMessage(
+    Guid ParticipantId,
+    string DisplayName,
+    string? AvatarUrl);

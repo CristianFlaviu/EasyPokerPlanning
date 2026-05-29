@@ -82,6 +82,8 @@ Set via `fly secrets set "KEY=value"` (run from `backend/`). Double underscore `
 | `Email__Smtp__UserName` | `Email:Smtp:UserName` | Usually the same Gmail address as `FromEmail`. |
 | `Email__Smtp__Password` | `Email:Smtp:Password` | Gmail app password from the sender account. Never log or commit. |
 | `Email__Smtp__FromName` | `Email:Smtp:FromName` | Optional sender display name; app default is `Easy Poker`. |
+| `AzureStorage__ConnectionString` | `AzureStorage:ConnectionString` | Azure Storage account connection string. Backs profile-picture (avatar) uploads. Never log or commit. |
+| `AzureStorage__AvatarsContainer` | `AzureStorage:AvatarsContainer` | Optional; blob container for avatars. App default is `avatars`. |
 
 List current secrets (values hidden):
 ```powershell
@@ -102,7 +104,7 @@ npm start
 ```
 
 Local secrets live in:
-- **.NET user-secrets** for `PokerPlanning.Api` — `MediatR:LicenseKey`, `Authentication:Google:ClientId`, `Authentication:Google:ClientSecret`, and `Email:Smtp:*` values set via `dotnet user-secrets`
+- **.NET user-secrets** for `PokerPlanning.Api` — `MediatR:LicenseKey`, `Authentication:Google:ClientId`, `Authentication:Google:ClientSecret`, `Email:Smtp:*`, and `AzureStorage:ConnectionString` values set via `dotnet user-secrets`
 - **`.env`** at repo root (gitignored) — `MEDIATR_LICENSE_KEY` for docker-compose
 
 ## Docker compose (local prod-like test)
@@ -215,6 +217,40 @@ cd backend
 fly secrets set "Email__Smtp__FromEmail=<gmail-address>" "Email__Smtp__UserName=<gmail-address>" "Email__Smtp__Password=<gmail-app-password>" "Email__Smtp__FromName=Easy Poker"
 ```
 
+## Azure Blob Storage setup (profile pictures)
+
+Avatar uploads (`POST /auth/me/avatar`) stream the image to an Azure Storage blob container; the public blob URL is stored on the user and returned to the client. `AzureBlobAvatarStorage` calls `CreateIfNotExistsAsync` with public-blob access, but that only sets access level **when it creates** the container — a pre-existing or manually created container keeps its current access level.
+
+One-time account setup (Azure Portal):
+
+1. **Storage account** → create or reuse one (StorageV2, Standard/LRS is fine). Account name used here: `easypokerplanning`.
+2. **Access keys** → copy the full **Connection string** (not just the key).
+3. **Configuration** → **Allow Blob anonymous access** → **Enabled** → **Save**. This only *unlocks* anonymous access; it does not make any container public yet.
+4. **Containers** → ensure an `avatars` container exists → tick it → **Change access level** → **Blob (anonymous read access for blobs only)** → **OK**. The `Anonymous access level` column must read **Blob**.
+
+> Gotcha: while a container is Private, anonymous GETs return HTTP **404 / `ResourceNotFound`** (Azure hides existence), *not* 403. A 404 on a blob the Portal clearly shows means access level is still Private — finish step 4.
+
+Verify a blob is publicly readable:
+```powershell
+curl.exe -s -o NUL -w "HTTP %{http_code}`n" "https://easypokerplanning.blob.core.windows.net/avatars/<userId>/<file>.png"
+# 200 = public OK; 404 = container still Private / wrong path
+```
+
+Local config:
+```powershell
+dotnet user-secrets --project backend/src/PokerPlanning.Api set "AzureStorage:ConnectionString" "<full-connection-string>"
+```
+
+Production Fly secret:
+```powershell
+cd backend
+fly secrets set "AzureStorage__ConnectionString=<full-connection-string>"
+```
+
+Notes:
+- Public-blob read means anyone with the avatar URL can view it (no container listing). Acceptable for avatars. For a locked-down account (subscription policy forbids public blobs), switch `AzureBlobAvatarStorage` to return SAS-signed URLs instead.
+- Allowed uploads: `image/jpeg`, `image/png`, `image/webp`, max 5 MB (enforced server-side in `UploadAvatarValidator` and client-side in the edit-profile dialog).
+
 ## Cost
 
 Free-tier targets across all services:
@@ -268,8 +304,9 @@ If credentials leak (e.g. pasted in chat):
 1. **Neon** dashboard → Roles → reset `neondb_owner` password
 2. **Upstash** dashboard → database → Details → reset password
 3. **MediatR** → buy a new key on luckypennysoftware.com (or accept dev-mode warning)
-4. Update Fly secrets:
+4. **Azure Storage** → Portal → storage account → **Access keys** → **Rotate key1** → copy the new connection string
+5. Update Fly secrets:
    ```powershell
-   fly secrets set "ConnectionStrings__postgres=..." "ConnectionStrings__redis=..."
+   fly secrets set "ConnectionStrings__postgres=..." "ConnectionStrings__redis=..." "AzureStorage__ConnectionString=..."
    ```
-5. Update local `.env` and `dotnet user-secrets`
+6. Update local `.env` and `dotnet user-secrets`

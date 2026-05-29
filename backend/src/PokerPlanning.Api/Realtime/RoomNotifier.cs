@@ -132,4 +132,18 @@ public sealed class RoomNotifier(
             .Group(RoomHub.GroupName(roomId.Value))
             .ParticipantRoleChanged(message);
     }
+
+    public Task ParticipantProfileChangedAsync(
+        RoomId roomId,
+        ParticipantId participantId,
+        string displayName,
+        string? avatarUrl,
+        CancellationToken ct)
+    {
+        var message = new ParticipantProfileChangedMessage(participantId.Value, displayName, avatarUrl);
+
+        return hubContext.Clients
+            .Group(RoomHub.GroupName(roomId.Value))
+            .ParticipantProfileChanged(message);
+    }
 }

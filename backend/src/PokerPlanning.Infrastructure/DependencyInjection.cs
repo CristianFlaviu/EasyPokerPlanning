@@ -9,7 +9,9 @@ using PokerPlanning.Infrastructure.Email;
 using PokerPlanning.Infrastructure.LiveState;
 using PokerPlanning.Infrastructure.Persistence;
 using PokerPlanning.Infrastructure.Security;
+using PokerPlanning.Infrastructure.Storage;
 using PokerPlanning.Infrastructure.Time;
+using PokerPlanning.Application.Abstractions.Storage;
 
 namespace PokerPlanning.Infrastructure;
 
@@ -21,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IEmailLoginTokenRepository, EmailLoginTokenRepository>();
         services.AddScoped<IEmailSender, GmailSmtpEmailSender>();
+        services.AddScoped<IAvatarStorage, AzureBlobAvatarStorage>();
         services.AddSingleton<IRoomLiveStateStore, RedisRoomLiveStateStore>();
         services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
         services.AddSingleton<IClock, SystemClock>();

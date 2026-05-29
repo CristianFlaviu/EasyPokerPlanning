@@ -2,7 +2,7 @@
 
 > Living status doc. Any agent (human or AI) reads this after `CLAUDE.md` + `docs/domain-model.md` to know what exists, what's broken, and what's next. Update at the **end of each slice**.
 
-Last updated: 2026-05-29 (email magic-link auth)
+Last updated: 2026-05-29 (edit profile: display name + avatar)
 
 ---
 
@@ -241,6 +241,15 @@ Last updated: 2026-05-29 (email magic-link auth)
 ### Local dev CORS port update
 - Api default CORS origins now include `http://localhost:4203` for Angular dev-server fallback ports alongside the existing local origins
 - Verification: `dotnet build backend/src/PokerPlanning.Api/PokerPlanning.Api.csproj -o .codex-run/build-api` passes
+
+### Edit profile: display name + avatar upload
+- Domain: `User.UpdateProfile(displayName, avatarUrl, now)` now raises `UserProfileUpdatedEvent` when a value actually changes; `Room.UpdateParticipantForUser(userId, displayName)` renames the user's seat in a room and returns its `ParticipantId`
+- Application: new `IAvatarStorage` abstraction; `Features/UploadAvatar/` (stores file → blob URL, validates type/size, no user mutation) and `Features/UpdateProfile/` (mutates `User`, returns `UserDto`); `UserProfileUpdatedEventHandler` propagates the new name+avatar to every room the user is in — runs in a **fresh DI scope** to avoid re-entrant `SaveChangesAsync` re-publishing the still-pending event
+- Infrastructure: `AzureBlobAvatarStorage` (Azure.Storage.Blobs) uploads to the `avatars` container (`{userId}/{guid}.{ext}`, public-blob read) and returns the blob URL; reads `AzureStorage:ConnectionString` from config
+- Api: `POST /auth/me/avatar` (multipart, `[Authorize]`, antiforgery disabled) and `PUT /auth/me/profile` (json) — profile update re-issues the `pp.auth` cookie with refreshed name/avatar claims; new `IRoomClient.ParticipantProfileChanged` typed event + `RoomNotifier` broadcast
+- Frontend: `AuthService.uploadAvatar(file)` / `updateProfile(name, avatarUrl)` (updates `currentUser` signal); new dark `EditProfileDialogComponent` (name field + avatar preview/picker, 5 MB / jpg-png-webp client guard) opened from the app-bar user menu; `SignalRService` handles `ParticipantProfileChanged` to live-update participant name+avatar
+- Config: requires `AzureStorage:ConnectionString` (user-secrets locally / `AzureStorage__ConnectionString` Fly secret in prod). Public avatar URLs need **two** Azure switches — account-level "Allow Blob anonymous access" Enabled **and** the `avatars` container access level set to **Blob**. Setup steps + the Private-container 404 gotcha documented in `DEPLOYMENT.md` → "Azure Blob Storage setup".
+- Verification: `dotnet build src/PokerPlanning.Api/PokerPlanning.Api.csproj --artifacts-path ./_buildcheck` (Api process held Debug DLLs) and `npx ng build` both pass; no DB migration needed (columns already exist); end-to-end verified live — upload to `avatars` container, blob publicly readable, avatar renders in app bar after profile save
 
 ---
 

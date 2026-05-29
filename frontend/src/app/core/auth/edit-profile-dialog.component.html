@@ -1,0 +1,51 @@
+<section class="edit-profile">
+  <header class="edit-profile__header">
+    <h2>Edit profile</h2>
+    <button mat-icon-button type="button" aria-label="Close edit profile dialog" (click)="close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <form [formGroup]="form" (ngSubmit)="save()" class="edit-profile__body">
+    <div class="edit-profile__avatar">
+      @if (previewUrl()) {
+        <img [src]="previewUrl()" alt="" referrerpolicy="no-referrer" class="edit-profile__avatar-img" />
+      } @else {
+        <mat-icon class="edit-profile__avatar-fallback">account_circle</mat-icon>
+      }
+
+      <input
+        #fileInput
+        type="file"
+        [accept]="accept"
+        (change)="onFileSelected($event)"
+        hidden
+      />
+      <button mat-stroked-button type="button" class="edit-profile__upload" (click)="fileInput.click()">
+        <mat-icon>photo_camera</mat-icon>
+        Change picture
+      </button>
+
+      @if (fileError()) {
+        <span class="edit-profile__file-error">{{ fileError() }}</span>
+      } @else {
+        <span class="edit-profile__hint">JPEG, PNG, or WebP · up to 5 MB</span>
+      }
+    </div>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Display name</mat-label>
+      <input matInput formControlName="displayName" maxlength="80" autocomplete="name" />
+      @if (form.controls.displayName.touched && form.controls.displayName.hasError('required')) {
+        <mat-error>Enter a display name.</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="edit-profile__actions">
+      <button mat-button type="button" (click)="close()" [disabled]="submitting()">Cancel</button>
+      <button mat-flat-button type="submit" [disabled]="submitting()">
+        {{ submitting() ? 'Saving...' : 'Save changes' }}
+      </button>
+    </div>
+  </form>
+</section>

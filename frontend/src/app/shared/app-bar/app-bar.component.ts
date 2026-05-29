@@ -6,6 +6,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { AuthDialogComponent, AuthDialogData } from '../../core/auth/auth-dialog.component';
+import { EditProfileDialogComponent } from '../../core/auth/edit-profile-dialog.component';
 
 @Component({
   selector: 'pp-app-bar',
@@ -44,6 +45,10 @@ import { AuthDialogComponent, AuthDialogData } from '../../core/auth/auth-dialog
               <span class="pp-app-bar__user-name">{{ auth.currentUser()!.displayName }}</span>
               <span class="pp-app-bar__user-email">{{ auth.currentUser()!.email }}</span>
             </div>
+            <button mat-menu-item type="button" (click)="openEditProfile()">
+              <mat-icon>manage_accounts</mat-icon>
+              <span>Edit profile</span>
+            </button>
             <button mat-menu-item type="button" (click)="onSignOut()">
               <mat-icon>logout</mat-icon>
               <span>Sign out</span>
@@ -81,6 +86,14 @@ export class AppBarComponent {
       width: 'min(460px, calc(100vw - 32px))',
       autoFocus: 'first-tabbable',
       data: { mode },
+    });
+  }
+
+  protected openEditProfile(): void {
+    this.dialog.open(EditProfileDialogComponent, {
+      panelClass: 'auth-dialog-panel',
+      width: 'min(460px, calc(100vw - 32px))',
+      autoFocus: 'first-tabbable',
     });
   }
 
