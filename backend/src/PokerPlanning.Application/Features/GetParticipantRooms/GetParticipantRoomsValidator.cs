@@ -6,6 +6,6 @@ public sealed class GetParticipantRoomsValidator : AbstractValidator<GetParticip
 {
     public GetParticipantRoomsValidator()
     {
-        RuleFor(q => q.ParticipantId).NotEqual(Guid.Empty);
+        RuleFor(q => q.CallerUserId).NotEqual(Guid.Empty);
     }
 }

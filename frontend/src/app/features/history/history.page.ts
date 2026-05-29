@@ -1,7 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
+import { AuthDialogComponent, AuthDialogData } from '../../core/auth/auth-dialog.component';
+import { AuthService } from '../../core/auth/auth.service';
 import {
   CompletedRound,
   ParticipantRoomSummary,
@@ -16,6 +19,7 @@ import { PlayingCardComponent } from '../../shared/playing-card/playing-card.com
   imports: [
     RouterLink,
     MatButtonModule,
+    MatDialogModule,
     MatIconModule,
     AppBarComponent,
     PlayingCardComponent,
@@ -26,6 +30,8 @@ import { PlayingCardComponent } from '../../shared/playing-card/playing-card.com
 })
 export class HistoryPage {
   private readonly api = inject(RoomApiService);
+  protected readonly auth = inject(AuthService);
+  private readonly dialog = inject(MatDialog);
 
   protected readonly rooms = signal<readonly ParticipantRoomSummary[]>([]);
   protected readonly selectedRoomId = signal<RoomId | null>(null);
@@ -36,6 +42,10 @@ export class HistoryPage {
   );
 
   constructor() {
+    if (!this.auth.isSignedIn()) {
+      return;
+    }
+
     this.api.getParticipantRooms().subscribe((res) => {
       this.rooms.set(res.rooms);
       if (res.rooms.length > 0) {
@@ -51,5 +61,14 @@ export class HistoryPage {
 
   protected shortRoomId(roomId: RoomId): string {
     return roomId.length > 14 ? `${roomId.slice(0, 8)}...${roomId.slice(-4)}` : roomId;
+  }
+
+  protected openAuthDialog(mode: AuthDialogData['mode']): void {
+    this.dialog.open(AuthDialogComponent, {
+      panelClass: 'auth-dialog-panel',
+      width: 'min(460px, calc(100vw - 32px))',
+      autoFocus: 'first-tabbable',
+      data: { mode },
+    });
   }
 }

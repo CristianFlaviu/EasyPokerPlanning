@@ -1,7 +1,6 @@
 using MediatR;
 using PokerPlanning.Application.Abstractions.Persistence;
 using PokerPlanning.Domain.Common;
-using PokerPlanning.Domain.Participants;
 using PokerPlanning.Domain.Rooms;
 using PokerPlanning.Domain.Users;
 
@@ -16,12 +15,10 @@ public sealed class GetRoomHistoryHandler(IRoomRepository rooms)
         if (room is null)
             return Result.Failure<GetRoomHistoryResult>(RoomErrors.NotFound);
 
-        var hasSeatAccess = query.CallerParticipantId is { } callerParticipantId
-            && room.HasParticipant(new ParticipantId(callerParticipantId));
         var hasUserAccess = query.CallerUserId is { } callerUserId
             && room.HasUserAccess(new UserId(callerUserId));
 
-        if (!hasSeatAccess && !hasUserAccess)
+        if (!hasUserAccess)
             return Result.Failure<GetRoomHistoryResult>(RoomErrors.NotAuthorized);
 
         var completedRounds = room.History

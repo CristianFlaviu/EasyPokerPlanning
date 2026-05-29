@@ -90,9 +90,11 @@ This matters because "password-protected room" is a user-facing promise. Even fo
 - `GET /rooms/{id}` without a valid token returns a **minimal preview** only — room name and
   `isPasswordProtected`. Participants, owner/moderator ids, and round state are withheld
   (`GetRoomHandler` short-circuits on `!HasAccess`), so the join screen can render without leaking.
-- `GET /rooms/{id}/history` now requires either a valid current seat token or the signed-in
-  account being linked to the room, so returning users can review completed sessions without
-  rejoining.
+- `GET /rooms/{id}/history` now requires the signed-in account to be linked to the room, so
+  returning users can review completed sessions without rejoining and signed-out users cannot
+  read history through retained browser identity.
+- `POST /rooms/{id}/access` can re-issue a room access token only for a signed-in account already
+  linked to the room, allowing history-to-room navigation without accepting a client-supplied seat id.
 - `RoomHub.JoinRoomGroup` validates the token (via SignalR `accessTokenFactory` → `access_token`
   query / `X-Room-Token`) against the requested room and confirms the seat is still a current
   participant before adding the connection to the group.

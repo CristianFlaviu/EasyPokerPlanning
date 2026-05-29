@@ -51,6 +51,14 @@ public sealed class Room : AggregateRoot
     public bool HasUserAccess(UserId userId) =>
         OwnerUserId == userId || _participants.Any(p => p.UserId == userId);
 
+    public ParticipantId? GetParticipantIdForUser(UserId userId)
+    {
+        if (OwnerUserId == userId)
+            return OwnerId;
+
+        return _participants.FirstOrDefault(p => p.UserId == userId)?.Id;
+    }
+
     public void RestoreCurrentRound(Round? round)
     {
         CurrentRound = round;

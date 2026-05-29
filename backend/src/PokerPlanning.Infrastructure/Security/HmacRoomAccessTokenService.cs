@@ -4,13 +4,14 @@ using System.Text;
 using PokerPlanning.Application.Abstractions.Security;
 using PokerPlanning.Domain.Participants;
 using PokerPlanning.Domain.Rooms;
+using PokerPlanning.Domain.Users;
 
 namespace PokerPlanning.Infrastructure.Security;
 
 /// <summary>
 /// Stateless seat token: <c>base64url(payload).base64url(HMAC-SHA256(payload))</c>
-/// where payload is <c>roomId:participantId:issuedUnixSeconds</c>. No server-side
-/// storage; integrity and binding to (room, participant) are guaranteed by the HMAC.
+/// where payload is <c>roomId:participantId:userIdOrDash:issuedUnixSeconds</c>.
+/// No server-side storage; integrity and binding to room/seat/account are guaranteed by the HMAC.
 /// </summary>
 public sealed class HmacRoomAccessTokenService : IRoomAccessTokenService
 {
@@ -26,17 +27,18 @@ public sealed class HmacRoomAccessTokenService : IRoomAccessTokenService
         _key = Encoding.UTF8.GetBytes(secret);
     }
 
-    public string Issue(RoomId roomId, ParticipantId participantId)
+    public string Issue(RoomId roomId, ParticipantId participantId, UserId? userId = null)
     {
         var issued = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        var payload = Encoding.UTF8.GetBytes($"{roomId.Value:N}:{participantId.Value:N}:{issued}");
+        var userPart = userId is null ? "-" : userId.Value.Value.ToString("N");
+        var payload = Encoding.UTF8.GetBytes($"{roomId.Value:N}:{participantId.Value:N}:{userPart}:{issued}");
         var signature = HMACSHA256.HashData(_key, payload);
         return $"{Base64Url.EncodeToString(payload)}.{Base64Url.EncodeToString(signature)}";
     }
 
-    public bool TryValidate(string? token, RoomId roomId, out ParticipantId participantId)
+    public bool TryValidate(string? token, RoomId roomId, out RoomAccessToken access)
     {
-        participantId = default;
+        access = default!;
 
         if (string.IsNullOrWhiteSpace(token))
             return false;
@@ -62,7 +64,7 @@ public sealed class HmacRoomAccessTokenService : IRoomAccessTokenService
             return false;
 
         var parts = Encoding.UTF8.GetString(payload).Split(':');
-        if (parts.Length != 3)
+        if (parts.Length != 4)
             return false;
 
         if (!Guid.TryParseExact(parts[0], "N", out var tokenRoomId) || tokenRoomId != roomId.Value)
@@ -71,13 +73,22 @@ public sealed class HmacRoomAccessTokenService : IRoomAccessTokenService
         if (!Guid.TryParseExact(parts[1], "N", out var seatId))
             return false;
 
-        if (!long.TryParse(parts[2], out var issuedUnix))
+        UserId? userId = null;
+        if (parts[2] != "-")
+        {
+            if (!Guid.TryParseExact(parts[2], "N", out var tokenUserId))
+                return false;
+
+            userId = new UserId(tokenUserId);
+        }
+
+        if (!long.TryParse(parts[3], out var issuedUnix))
             return false;
 
         if (DateTimeOffset.FromUnixTimeSeconds(issuedUnix) + Lifetime < DateTimeOffset.UtcNow)
             return false;
 
-        participantId = new ParticipantId(seatId);
+        access = new RoomAccessToken(new ParticipantId(seatId), userId);
         return true;
     }
 }

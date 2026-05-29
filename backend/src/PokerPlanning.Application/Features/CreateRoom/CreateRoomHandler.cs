@@ -40,7 +40,7 @@ public sealed class CreateRoomHandler(
         await rooms.AddAsync(room, ct);
         await rooms.SaveChangesAsync(ct);
 
-        var accessToken = accessTokens.Issue(room.Id, ownerId);
+        var accessToken = accessTokens.Issue(room.Id, ownerId, ownerUserId);
         return Result.Success(new CreateRoomResult(room.Id.Value, ownerId.Value, accessToken));
     }
 }

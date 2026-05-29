@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.SignalR;
 using PokerPlanning.Application.Abstractions.LiveState;
 using PokerPlanning.Application.Abstractions.Security;
@@ -53,9 +54,22 @@ public sealed class RoomHub(
         if (string.IsNullOrWhiteSpace(token))
             token = http?.Request.Headers["X-Room-Token"].ToString();
 
-        if (tokens.TryValidate(token, new RoomId(roomId), out var participantId))
-            return participantId;
+        if (!tokens.TryValidate(token, new RoomId(roomId), out var access))
+            throw new HubException("A valid room access token is required.");
 
-        throw new HubException("A valid room access token is required.");
+        if (access.UserId is not null
+            && (!TryGetCurrentUserId(out var currentUserId) || currentUserId != access.UserId.Value.Value))
+        {
+            throw new HubException("A valid room access token is required.");
+        }
+
+        return access.ParticipantId;
+    }
+
+    private bool TryGetCurrentUserId(out Guid userId)
+    {
+        userId = Guid.Empty;
+        var sub = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(sub, out userId);
     }
 }

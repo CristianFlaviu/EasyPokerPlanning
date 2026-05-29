@@ -11,6 +11,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { RoomApiService } from '../lobby/room-api.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { SignalRService } from '../../core/signalr/signalr.service';
 import { IdentityService } from '../../core/identity/identity.service';
 import { RoomAccessService } from '../../core/identity/room-access.service';
@@ -83,6 +84,7 @@ interface ActionCue {
 export class RoomPage {
   private readonly route = inject(ActivatedRoute);
   private readonly api = inject(RoomApiService);
+  private readonly auth = inject(AuthService);
   private readonly signalr = inject(SignalRService);
   private readonly identity = inject(IdentityService);
   private readonly roomAccess = inject(RoomAccessService);
@@ -357,13 +359,25 @@ export class RoomPage {
         return;
       }
 
-      this.loadRoom(roomId);
-      // Only open the live connection once we hold a seat token; otherwise the hub
-      // rejects the join. A non-joined visitor sees the preview + join form first.
       if (this.roomAccess.getToken(roomId)) {
+        this.loadRoom(roomId);
         void this.signalr.connectToRoom(roomId);
+      } else if (this.auth.isSignedIn()) {
+        this.restoreAccessAndLoadRoom(roomId);
+      } else {
+        this.loadRoom(roomId);
       }
       onCleanup(() => void this.signalr.disconnectFromRoom());
+    });
+  }
+
+  private restoreAccessAndLoadRoom(roomId: RoomId): void {
+    this.api.restoreRoomAccess(roomId).subscribe({
+      next: () => {
+        this.loadRoom(roomId);
+        void this.signalr.connectToRoom(roomId);
+      },
+      error: () => this.loadRoom(roomId),
     });
   }
 

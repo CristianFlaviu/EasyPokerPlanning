@@ -5,7 +5,21 @@
 </pp-app-bar>
 
 <main class="history">
-  @if (rooms().length === 0) {
+  @if (!auth.isSignedIn()) {
+    <section class="history__empty pp-fade-up">
+      <div class="history__empty-stack">
+        <div class="ghost ghost--1">?</div>
+        <div class="ghost ghost--2">?</div>
+        <div class="ghost ghost--3">?</div>
+      </div>
+      <h2>Sign in to view history</h2>
+      <p>Completed rounds are saved to your account and are hidden after sign out.</p>
+      <div class="history__auth-actions">
+        <button mat-flat-button color="primary" type="button" (click)="openAuthDialog('login')">Login</button>
+        <button mat-stroked-button type="button" (click)="openAuthDialog('signup')">Sign Up</button>
+      </div>
+    </section>
+  } @else if (rooms().length === 0) {
     <section class="history__empty pp-fade-up">
       <div class="history__empty-stack">
         <div class="ghost ghost--1">?</div>
@@ -13,7 +27,7 @@
         <div class="ghost ghost--3">?</div>
       </div>
       <h2>No rounds yet</h2>
-      <p>Rooms you join will appear here. Finished rounds are kept locally so you can look them up later.</p>
+      <p>Rooms linked to your account will appear here after a round is completed.</p>
       <a mat-flat-button color="primary" routerLink="/" class="history__cta">Create a room</a>
     </section>
   } @else {

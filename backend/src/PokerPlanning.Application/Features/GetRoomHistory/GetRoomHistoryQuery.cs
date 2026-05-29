@@ -5,7 +5,6 @@ namespace PokerPlanning.Application.Features.GetRoomHistory;
 
 public sealed record GetRoomHistoryQuery(
     Guid RoomId,
-    Guid? CallerParticipantId = null,
     Guid? CallerUserId = null) : IRequest<Result<GetRoomHistoryResult>>;
 
 public sealed record GetRoomHistoryResult(

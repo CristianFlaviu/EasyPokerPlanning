@@ -1,5 +1,6 @@
 using PokerPlanning.Domain.Participants;
 using PokerPlanning.Domain.Rooms;
+using PokerPlanning.Domain.Users;
 
 namespace PokerPlanning.Application.Abstractions.Security;
 
@@ -10,7 +11,9 @@ namespace PokerPlanning.Application.Abstractions.Security;
 /// </summary>
 public interface IRoomAccessTokenService
 {
-    string Issue(RoomId roomId, ParticipantId participantId);
+    string Issue(RoomId roomId, ParticipantId participantId, UserId? userId = null);
 
-    bool TryValidate(string? token, RoomId roomId, out ParticipantId participantId);
+    bool TryValidate(string? token, RoomId roomId, out RoomAccessToken access);
 }
+
+public sealed record RoomAccessToken(ParticipantId ParticipantId, UserId? UserId);

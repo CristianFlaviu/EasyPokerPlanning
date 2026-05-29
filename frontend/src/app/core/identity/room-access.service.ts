@@ -20,4 +20,13 @@ export class RoomAccessService {
   clearToken(roomId: RoomId): void {
     localStorage.removeItem(KEY_PREFIX + roomId);
   }
+
+  clearAllTokens(): void {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(KEY_PREFIX)) {
+        localStorage.removeItem(key);
+      }
+    }
+  }
 }

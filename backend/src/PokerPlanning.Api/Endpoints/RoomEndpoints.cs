@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -16,6 +17,7 @@ using PokerPlanning.Application.Features.LeaveRoom;
 using PokerPlanning.Application.Features.PromoteModerator;
 using PokerPlanning.Application.Features.RemoveParticipant;
 using PokerPlanning.Application.Features.ResetRound;
+using PokerPlanning.Application.Features.RestoreRoomAccess;
 using PokerPlanning.Application.Features.RevealVotes;
 using PokerPlanning.Application.Features.StartRound;
 using PokerPlanning.Application.Features.SubmitVote;
@@ -49,6 +51,10 @@ public static class RoomEndpoints
         group.MapPost("{id:guid}/join", JoinRoom)
             .WithName("JoinRoom")
             .WithSummary("Join an existing poker planning room.");
+
+        group.MapPost("{id:guid}/access", RestoreRoomAccess)
+            .WithName("RestoreRoomAccess")
+            .WithSummary("Restore room access for a signed-in account already linked to the room.");
 
         group.MapPost("{id:guid}/rounds", StartRound)
             .WithName("StartRound")
@@ -182,17 +188,32 @@ public static class RoomEndpoints
             TypedResults.Ok(new JoinRoomResponse(value.RoomId, value.ParticipantId, value.AccessToken)));
     }
 
-    private static async Task<IResult> GetParticipantRooms(
-        Guid? participantId,
+    private static async Task<IResult> RestoreRoomAccess(
+        Guid id,
         IMediator mediator,
-        HttpContext http,
         IUserContext userContext,
         CancellationToken ct)
     {
-        var resolvedParticipantId = ResolveClaimedParticipantId(http, participantId);
+        if (userContext.CurrentUserId is null)
+            return TypedResults.Unauthorized();
+
         var result = await mediator.Send(
-            new GetParticipantRoomsQuery(resolvedParticipantId, userContext.CurrentUserId),
+            new RestoreRoomAccessCommand(id, userContext.CurrentUserId.Value),
             ct);
+
+        return result.ToHttpResult(value =>
+            TypedResults.Ok(new RestoreRoomAccessResponse(value.RoomId, value.ParticipantId, value.AccessToken)));
+    }
+
+    private static async Task<IResult> GetParticipantRooms(
+        IMediator mediator,
+        IUserContext userContext,
+        CancellationToken ct)
+    {
+        if (userContext.CurrentUserId is null)
+            return TypedResults.Unauthorized();
+
+        var result = await mediator.Send(new GetParticipantRoomsQuery(userContext.CurrentUserId.Value), ct);
 
         return result.ToHttpResult(value =>
             TypedResults.Ok(new GetParticipantRoomsResponse(
@@ -209,16 +230,14 @@ public static class RoomEndpoints
         Guid id,
         IMediator mediator,
         HttpContext http,
-        IRoomAccessTokenService tokens,
         IUserContext userContext,
         CancellationToken ct)
     {
-        TryResolveSeat(http, id, tokens, out var participantId);
+        if (userContext.CurrentUserId is null)
+            return TypedResults.Unauthorized();
+
         var result = await mediator.Send(
-            new GetRoomHistoryQuery(
-                id,
-                participantId == Guid.Empty ? null : participantId,
-                userContext.CurrentUserId),
+            new GetRoomHistoryQuery(id, userContext.CurrentUserId),
             ct);
 
         return result.ToHttpResult(value =>
@@ -414,11 +433,24 @@ public static class RoomEndpoints
         if (string.IsNullOrWhiteSpace(token))
             return false;
 
-        if (!tokens.TryValidate(token, new RoomId(roomId), out var seat))
+        if (!tokens.TryValidate(token, new RoomId(roomId), out var access))
             return false;
 
-        participantId = seat.Value;
+        if (access.UserId is not null
+            && (!TryGetCurrentUserId(http, out var currentUserId) || currentUserId != access.UserId.Value.Value))
+        {
+            return false;
+        }
+
+        participantId = access.ParticipantId.Value;
         return true;
+    }
+
+    private static bool TryGetCurrentUserId(HttpContext http, out Guid userId)
+    {
+        userId = Guid.Empty;
+        var sub = http.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(sub, out userId);
     }
 
     // Identity claim for create/join/history only (not an authorization credential).
@@ -455,6 +487,8 @@ public sealed record JoinRoomRequest(
     Guid? ParticipantId = null);
 
 public sealed record JoinRoomResponse(Guid RoomId, Guid ParticipantId, string AccessToken);
+
+public sealed record RestoreRoomAccessResponse(Guid RoomId, Guid ParticipantId, string AccessToken);
 
 public sealed record GetRoomResponse(
     Guid Id,

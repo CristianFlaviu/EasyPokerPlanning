@@ -43,7 +43,7 @@ public sealed class JoinRoomHandler(
 
         await rooms.SaveChangesAsync(ct);
 
-        var accessToken = accessTokens.Issue(room.Id, participantId);
+        var accessToken = accessTokens.Issue(room.Id, participantId, callerUserId);
         return Result.Success(new JoinRoomResult(room.Id.Value, participantId.Value, accessToken));
     }
 }

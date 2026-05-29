@@ -29,6 +29,12 @@ export interface JoinRoomResponse {
   readonly accessToken: string;
 }
 
+export interface RestoreRoomAccessResponse {
+  readonly roomId: RoomId;
+  readonly participantId: ParticipantId;
+  readonly accessToken: string;
+}
+
 export interface StartRoundRequest {
   readonly title?: string | null;
 }
@@ -86,6 +92,12 @@ export class RoomApiService {
 
   joinRoom(roomId: RoomId, req: JoinRoomRequest): Observable<JoinRoomResponse> {
     return this.http.post<JoinRoomResponse>(`${this.baseUrl}/${roomId}/join`, req).pipe(
+      tap((res) => this.roomAccess.setToken(res.roomId, res.accessToken)),
+    );
+  }
+
+  restoreRoomAccess(roomId: RoomId): Observable<RestoreRoomAccessResponse> {
+    return this.http.post<RestoreRoomAccessResponse>(`${this.baseUrl}/${roomId}/access`, {}).pipe(
       tap((res) => this.roomAccess.setToken(res.roomId, res.accessToken)),
     );
   }

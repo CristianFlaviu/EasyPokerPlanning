@@ -3,9 +3,7 @@ using PokerPlanning.Domain.Common;
 
 namespace PokerPlanning.Application.Features.GetParticipantRooms;
 
-public sealed record GetParticipantRoomsQuery(
-    Guid ParticipantId,
-    Guid? CallerUserId = null) : IRequest<Result<GetParticipantRoomsResult>>;
+public sealed record GetParticipantRoomsQuery(Guid CallerUserId) : IRequest<Result<GetParticipantRoomsResult>>;
 
 public sealed record GetParticipantRoomsResult(IReadOnlyList<ParticipantRoomSummaryResult> Rooms);
 

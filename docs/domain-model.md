@@ -128,12 +128,14 @@ The `VoteSubmitted` SignalR event carries only `participantId` + a "has voted" f
 - On rejoining a room with no active round, only the room metadata + history are needed (Postgres only).
 
 ## History view
-- `GET /rooms/history?participantId=...` returns rooms the participant has been in, with summary stats per room (number of rounds completed, when last active).
-- `GET /rooms/{id}/history` returns the list of `CompletedRound`s for a specific room.
-- Match rule: rooms surface when **any** of the following matches the caller — current `participantId`, current `UserId` (when signed in, both on participant rows and on `Room.OwnerUserId`), or `participantId` appearing in any completed round's vote map. This means signed-in users see their rooms across browsers/devices.
+- History is an account feature. Signed-out users cannot list room history, even if their browser still has a local `participantId`.
+- `GET /rooms/history` returns rooms linked to the signed-in user, with summary stats per room (number of rounds completed, when last active).
+- `GET /rooms/{id}/history` returns the list of `CompletedRound`s for a specific room when the caller is signed in with an account linked to that room.
+- `POST /rooms/{id}/access` restores a live room access token for a signed-in account already linked to the room, so users can re-open rooms from history after logging out and back in without retyping a display name.
+- Match rule for signed-in history summaries: rooms surface when current `UserId` matches participant rows or `Room.OwnerUserId`. This means signed-in users see their account-linked rooms across browsers/devices.
 
 ## Identity model (Phase 1 + 2)
-- **Anonymous default**: every browser generates a `participantId` (Guid) stored in `localStorage`. Sent on every HTTP request as `X-Participant-Id` header and SignalR query string `participantId=`. This is the **seat identity** — what a Room sees.
+- **Anonymous default**: every browser generates a `participantId` (Guid) stored in `localStorage`. Sent on HTTP create/join requests as `X-Participant-Id`. This is the **seat identity** — what a Room sees — but it is not enough to view history while signed out.
 - **Optional account sign-in**: backend auth uses an httpOnly `pp.auth` cookie carrying the application `UserId` as `sub`. Google OAuth starts at `/auth/google/login`; email magic-link auth starts at `POST /auth/email/request` and completes at `/auth/email/callback?token=...`.
 - **User identity**: `User` aggregate (Postgres `users` table) stores email, display name, avatar URL, and linked external logins in `user_logins`. Supported providers are `google` and `email`. Email magic-link tokens are short-lived, one-time tokens stored hashed in `email_login_tokens`. New email-only users initially derive display name from the email prefix before `@`; editing account display names is planned later.
 - **Linking semantics**: when a signed-in user creates or joins a room, the backend reads `UserId` from the cookie and records it on the `Participant` row (and on `Room.OwnerUserId` for create). `ParticipantId` stays browser-local; `UserId` is the stable cross-device identity. A new browser produces a new `ParticipantId` but the same `UserId`, so a signed-in user's next join attaches the new seat to their account and their history surfaces both seats.

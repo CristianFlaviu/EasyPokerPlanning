@@ -175,12 +175,12 @@ async function requestJson(url, options) {
   return response.json();
 }
 
-async function apiPost(apiBaseUrl, path, body, participantId) {
+async function apiPost(apiBaseUrl, path, body, roomToken) {
   const response = await fetch(`${apiBaseUrl}${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Participant-Id": participantId,
+      "X-Room-Token": roomToken,
     },
     body: JSON.stringify(body ?? {}),
   });
@@ -413,9 +413,12 @@ function collectErrors(cdp) {
     const participantId = crypto.randomUUID();
 
     await requestJson(`${apiBaseUrl}/openapi/v1.json`);
-    await requestJson(`${apiBaseUrl}/rooms/history`, {
+    const anonymousHistory = await fetch(`${apiBaseUrl}/rooms/history`, {
       headers: { "X-Participant-Id": participantId },
     });
+    if (anonymousHistory.status !== 401) {
+      throw new Error(`Expected anonymous history to return 401, got ${anonymousHistory.status}`);
+    }
 
     await waitForChrome();
     const target = await requestJson(`http://127.0.0.1:${port}/json/new?about:blank`, { method: "PUT" });
@@ -431,10 +434,10 @@ function collectErrors(cdp) {
     await screenshot(cdp, "01-lobby");
 
     await clickByText(cdp, "History");
-    await waitFor(cdp, "location.pathname === '/history' && document.body.innerText.includes('No rounds yet')", "history page");
+    await waitFor(cdp, "location.pathname === '/history' && document.body.innerText.includes('Sign in to view history')", "signed-out history page");
     await screenshot(cdp, "02-history");
 
-    await clickByText(cdp, "Create a room");
+    await clickByText(cdp, "Back to lobby");
     await waitFor(cdp, "location.pathname === '/' && document.body.innerText.includes('Create a planning room')", "return to lobby");
 
     if (!readOnly) {
@@ -443,29 +446,29 @@ function collectErrors(cdp) {
       await setInput(cdp, "input[formcontrolname='ownerDisplayName']", "Smoke Owner");
       await clickByText(cdp, "Create room");
       await waitFor(cdp, "location.pathname.startsWith('/room/') && document.body.innerText.includes('WAITING FOR ROUND')", "created room");
-      await waitFor(cdp, "document.body.innerText.includes('connected')", "SignalR connected", 20000);
       await screenshot(cdp, "03-room-created");
 
       const roomId = await evalExpr(cdp, "location.pathname.split('/').filter(Boolean).at(-1)");
-      const ownerParticipantId = await evalExpr(cdp, "localStorage.getItem('pp.participantId')");
+      const roomToken = await evalExpr(cdp, "localStorage.getItem('pp.roomToken.' + location.pathname.split('/').filter(Boolean).at(-1))");
+      if (!roomToken) throw new Error("Room token was not stored after create.");
       const roomUrl = `${frontendUrl}/room/${roomId}`;
-      await apiPost(apiBaseUrl, `/rooms/${roomId}/rounds`, { title: "Smoke round" }, ownerParticipantId);
+      await apiPost(apiBaseUrl, `/rooms/${roomId}/rounds`, { title: "Smoke round" }, roomToken);
       await navigateAndWaitFor(cdp, `${roomUrl}?smoke=${Date.now()}`, "document.body.innerText.includes('VOTING') && document.body.innerText.toLowerCase().includes('your pick')", "started round");
 
-      await apiPost(apiBaseUrl, `/rooms/${roomId}/round/vote`, { card: "5" }, ownerParticipantId);
+      await apiPost(apiBaseUrl, `/rooms/${roomId}/round/vote`, { card: "5" }, roomToken);
       await navigateAndWaitFor(cdp, `${roomUrl}?smoke=${Date.now()}`, "document.body.innerText.includes('1 / 1 voted')", "submitted vote");
       await screenshot(cdp, "04-voted");
 
-      await apiPost(apiBaseUrl, `/rooms/${roomId}/round/reveal`, {}, ownerParticipantId);
+      await apiPost(apiBaseUrl, `/rooms/${roomId}/round/reveal`, {}, roomToken);
       await navigateAndWaitFor(cdp, `${roomUrl}?smoke=${Date.now()}`, "document.body.innerText.includes('REVEALED')", "revealed votes");
       await screenshot(cdp, "05-revealed");
 
-      await apiPost(apiBaseUrl, `/rooms/${roomId}/round/end`, { finalEstimate: "5" }, ownerParticipantId);
+      await apiPost(apiBaseUrl, `/rooms/${roomId}/round/end`, { finalEstimate: "5" }, roomToken);
       await navigateAndWaitFor(cdp, `${roomUrl}?smoke=${Date.now()}`, "document.body.innerText.includes('WAITING FOR ROUND')", "ended round");
 
       await clickByText(cdp, "History");
-      await waitFor(cdp, "location.pathname === '/history' && document.body.innerText.includes('Smoke round')", "completed round in history", 20000);
-      await screenshot(cdp, "06-history-completed");
+      await waitFor(cdp, "location.pathname === '/history' && document.body.innerText.includes('Sign in to view history')", "signed-out history remains hidden", 20000);
+      await screenshot(cdp, "06-history-signed-out");
     }
 
     const errors = collectErrors(cdp);

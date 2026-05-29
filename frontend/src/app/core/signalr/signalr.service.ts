@@ -69,6 +69,10 @@ export class SignalRService {
   readonly currentRound = signal<CurrentRound | null>(null);
   readonly connectionState = signal<ConnectionState>('disconnected');
 
+  constructor() {
+    window.addEventListener('pp:signout', () => void this.disconnectFromRoom());
+  }
+
   setParticipants(participants: readonly Participant[]): void {
     this.participants.set(participants);
   }
@@ -257,6 +261,9 @@ export class SignalRService {
     }
 
     await connection.stop();
+    this.participants.set([]);
+    this.moderatorIds.set([]);
+    this.currentRound.set(null);
     this.connectionState.set('disconnected');
   }
 

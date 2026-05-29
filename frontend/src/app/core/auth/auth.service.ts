@@ -1,9 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { Observable, firstValueFrom } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { UserDto } from '../../domain/user';
+import { RoomAccessService } from '../identity/room-access.service';
 
 export interface EmailLoginRequest {
   readonly mode: 'login' | 'signup';
@@ -15,6 +17,8 @@ export interface EmailLoginRequest {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
+  private readonly roomAccess = inject(RoomAccessService);
+  private readonly router = inject(Router);
   private readonly _currentUser = signal<UserDto | null>(null);
 
   readonly currentUser = this._currentUser.asReadonly();
@@ -74,6 +78,11 @@ export class AuthService {
       );
     } finally {
       this._currentUser.set(null);
+      this.roomAccess.clearAllTokens();
+      window.dispatchEvent(new Event('pp:signout'));
+      if (this.router.url.startsWith('/room/')) {
+        await this.router.navigate(['/']);
+      }
     }
   }
 }
