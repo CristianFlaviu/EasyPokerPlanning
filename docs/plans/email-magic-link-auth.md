@@ -11,6 +11,7 @@ EasyPokerPlanning keeps anonymous room creation as the default while offering op
 - `GET /auth/email/callback?token=...` validates and consumes the token, links or creates the `User`, signs the existing `pp.auth` cookie, and redirects to the validated frontend return URL.
 - Existing users are merged by normalized email, so Google and email login can point to the same account.
 - Login requests for unknown email addresses return accepted without creating an account.
+- New email-only users get their initial display name from the part of the email before `@`; editable profile names are planned for a later slice.
 - Email magic-link tokens are stored hashed, expire after 15 minutes, and are single-use.
 - `users.logins` JSON storage was migrated to `user_logins` with a unique `(provider, subject)` index.
 
@@ -18,9 +19,10 @@ EasyPokerPlanning keeps anonymous room creation as the default while offering op
 - Anonymous app-bar state shows `Sign Up` and `Login`.
 - Signed-in app-bar state still shows the user avatar/name menu and sign-out action.
 - Auth modal supports Google and email magic-link flows.
-- Sign-up asks for display name and email.
+- Sign-up asks for email only.
 - Login asks for email.
-- Successful email request shows an in-dialog check-your-inbox state.
+- Successful email request shows an in-dialog check-your-inbox state with `Resend email` and `Use another email` actions.
+- Auth dialog readability was tuned for the dark surface, including brighter field labels, input text, outlines, and error text.
 
 ## SMTP Configuration
 Email delivery uses MailKit and Gmail SMTP. Configure these values through user-secrets locally or Fly secrets in production:

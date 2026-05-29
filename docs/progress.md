@@ -233,9 +233,14 @@ Last updated: 2026-05-29 (email magic-link auth)
 - Domain/Application: added email provider support for `ExternalLogin`, one-time email login tokens, provider linking by normalized email, and request/consume email-login command slices
 - Infrastructure: migrated user external logins from `users.logins` JSON text to relational `user_logins` with unique `(provider, subject)`; added `email_login_tokens`; added MailKit-backed Gmail SMTP sender
 - Api: added `POST /auth/email/request` and `GET /auth/email/callback?token=...`; callback validates one-time tokens, links/creates the user, signs the existing `pp.auth` cookie, and redirects to the validated frontend return URL
-- Frontend: replaced anonymous app-bar `Sign in with Google` with `Sign Up` and `Login` actions; added dark auth modal with Google and email magic-link flows plus check-your-inbox state
+- Frontend: replaced anonymous app-bar `Sign in with Google` with `Sign Up` and `Login` actions; added dark auth modal with Google and email magic-link flows, check-your-inbox state, resend email action, and clearer dark-field readability
+- Behaviour: email-only sign-up now asks only for email and derives the initial account display name from the email prefix before `@`; account name editing is deferred
 - Docs: updated identity model and deployment SMTP configuration notes
 - Verification: `dotnet build backend/src/PokerPlanning.Api/PokerPlanning.Api.csproj -o .codex-run/build-api` and `npm run build` pass
+
+### Local dev CORS port update
+- Api default CORS origins now include `http://localhost:4203` for Angular dev-server fallback ports alongside the existing local origins
+- Verification: `dotnet build backend/src/PokerPlanning.Api/PokerPlanning.Api.csproj -o .codex-run/build-api` passes
 
 ---
 

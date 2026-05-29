@@ -174,6 +174,7 @@ Rotate any of these by creating a new token, updating the GitHub secret, then re
 - **Strict CORS** — allowed origins are the canonical Pages domain plus HTTPS subdomains of the same Pages project for preview deployments. Update `Cors__AllowedOrigins__*` for exact custom domains and `Cors__AllowedWildcardOrigins__*` only for trusted wildcard domains.
 - **OpenAPI + Scalar exposed in production** — intentional for portfolio demo. Hide behind dev flag if you reuse this template for real product.
 - **Cookie posture** — `pp.auth` cookie uses `SameSite=None; Secure` in all environments. Required for prod (Pages and Fly are cross-site so `Lax` would drop the cookie). Works in dev too because browsers treat `http://localhost` as potentially trustworthy, so `Secure` cookies are accepted there without HTTPS.
+- **Local CORS defaults** — the API allows Angular dev origins `http://localhost:4200`, `http://localhost:4201`, `http://localhost:4203`, and `http://localhost:4301` when no explicit `Cors:AllowedOrigins` config is supplied.
 
 ## Google OAuth setup (prod)
 
