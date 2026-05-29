@@ -90,6 +90,33 @@ List current secrets (values hidden):
 fly secrets list
 ```
 
+### New-environment secrets checklist
+
+When standing up a fresh environment, set these (env-var form shown; `:` → `__`):
+
+**Required** — API fails or a core feature throws without them:
+1. `ConnectionStrings__postgres` — durable data; API can't start without it
+2. `ConnectionStrings__redis` — live room state
+3. `Email__Smtp__FromEmail` + `Email__Smtp__Password` — magic-link login throws if unset (`Email__Smtp__UserName` defaults to `FromEmail`)
+4. `AzureStorage__ConnectionString` — avatar upload throws if unset
+
+**Feature-gated** — absent = feature disabled cleanly, no crash:
+- `Authentication__Google__ClientId` + `Authentication__Google__ClientSecret` — Google sign-in off; `/auth/google/login` returns 503
+- `MediatR__LicenseKey` — falls back to dev-mode warning
+
+**Per-env config (not secret, has defaults):**
+- `Cors__AllowedOrigins__*` — exact deployed frontend origin(s)
+- `Cors__AllowedWildcardOrigins__*` — trusted wildcard preview origins
+- `Email__Smtp__Host` (default `smtp.gmail.com`), `Email__Smtp__Port` (default `587`), `Email__Smtp__FromName` (default `Easy Poker`)
+- `AzureStorage__AvatarsContainer` (default `avatars`)
+- `OTEL_EXPORTER_OTLP_ENDPOINT` — optional; telemetry export off if unset
+- Frontend `apiBaseUrl` — build-time only, in `frontend/src/environments/environment.prod.ts`
+
+**Notes:**
+- The email magic-link callback URL is derived at runtime from the incoming request host (no config key). Behind a proxy it relies on `X-Forwarded-Proto`/`X-Forwarded-Host` (wired in `Program.cs`).
+- `pp.auth` cookie is `SameSite=None; Secure` → any deployed environment must serve the API over HTTPS.
+- Postgres/Redis connection strings are auto-wired by .NET Aspire for local dev; set them explicitly in any non-Aspire deploy.
+
 ## Local development
 
 Aspire AppHost stays the dev loop — Fly + Docker are prod-only.
@@ -180,7 +207,7 @@ Rotate any of these by creating a new token, updating the GitHub secret, then re
 
 ## Google OAuth setup (prod)
 
-Single OAuth Client ID in Google Cloud Console can serve dev + prod. After creating the Web client (see `docs/plans/google-signin.md` §4 / §10):
+Single OAuth Client ID in Google Cloud Console can serve dev + prod. After creating the Web client:
 
 1. Credentials → OAuth client → Edit.
 2. Authorised JavaScript origins:

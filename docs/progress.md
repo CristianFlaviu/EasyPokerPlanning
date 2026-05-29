@@ -2,7 +2,7 @@
 
 > Living status doc. Any agent (human or AI) reads this after `CLAUDE.md` + `docs/domain-model.md` to know what exists, what's broken, and what's next. Update at the **end of each slice**.
 
-Last updated: 2026-05-29 (edit profile: display name + avatar)
+Last updated: 2026-05-29 (docs cleanup)
 
 ---
 
@@ -199,7 +199,7 @@ Last updated: 2026-05-29 (edit profile: display name + avatar)
 - Frontend: app bar renders "Sign in with Google" when anonymous, avatar + dropdown with sign-out when signed in
 - Frontend: lobby pre-fills owner display name from Google profile while keeping field editable; SignalR connection already carried `withCredentials: true`
 - Docs: `domain-model.md` updated to reflect optional Google sign-in; this entry
-- Phase 1 deliberately defers `Participant.UserId` / `Room.OwnerUserId` linkage and cross-device history (Phase 2) and email magic-link (Phase 3) — see `docs/plans/google-signin.md`
+- Phase 1 deliberately defers `Participant.UserId` / `Room.OwnerUserId` linkage and cross-device history (Phase 2) and email magic-link (Phase 3)
 - Verification: `dotnet build` of `PokerPlanning.Api` to isolated output (Api process held Debug DLLs) and `npm run build` both succeed; `dotnet ef migrations add AddUsers` produces the expected single-table migration
 
 ### Lobby join-by-link fix
@@ -215,7 +215,7 @@ Last updated: 2026-05-29 (edit profile: display name + avatar)
 - Behaviour: anonymous flows unchanged; signed-in user creating a room records `OwnerUserId` for cross-device ownership; signing in on a new browser surfaces existing rooms in history via `OwnerUserId` / `Participant.UserId` matching
 - Docs: `domain-model.md` adds "Identity model (Phase 1 + 2)" section, refreshes `Room` / `Participant` field tables, and clarifies the history match rule; `out of scope` list updated
 - Verification: `dotnet build PokerPlanning.Api` (isolated output) passes with 0 warnings; `dotnet ef migrations add AddParticipantUserId` produces a clean two-column add
-- Deferred to Phase 3: email magic-link provider, `user_logins` child table with unique `(provider, subject)` index — see `docs/plans/google-signin.md` §9
+- Deferred to Phase 3: email magic-link provider, `user_logins` child table with unique `(provider, subject)` index (since shipped — see "Email magic-link auth" entry below)
 
 ### Browser tab favicon
 - Frontend: added an `EP` SVG favicon matching the navbar brand mark and updated the app shell to use it instead of Angular's default favicon
@@ -250,6 +250,12 @@ Last updated: 2026-05-29 (edit profile: display name + avatar)
 - Frontend: `AuthService.uploadAvatar(file)` / `updateProfile(name, avatarUrl)` (updates `currentUser` signal); new dark `EditProfileDialogComponent` (name field + avatar preview/picker, 5 MB / jpg-png-webp client guard) opened from the app-bar user menu; `SignalRService` handles `ParticipantProfileChanged` to live-update participant name+avatar
 - Config: requires `AzureStorage:ConnectionString` (user-secrets locally / `AzureStorage__ConnectionString` Fly secret in prod). Public avatar URLs need **two** Azure switches — account-level "Allow Blob anonymous access" Enabled **and** the `avatars` container access level set to **Blob**. Setup steps + the Private-container 404 gotcha documented in `DEPLOYMENT.md` → "Azure Blob Storage setup".
 - Verification: `dotnet build src/PokerPlanning.Api/PokerPlanning.Api.csproj --artifacts-path ./_buildcheck` (Api process held Debug DLLs) and `npx ng build` both pass; no DB migration needed (columns already exist); end-to-end verified live — upload to `avatars` container, blob publicly readable, avatar renders in app bar after profile save
+
+### Docs cleanup
+- Removed obsolete/shipped docs: `docs/plans/` (google-signin, email-magic-link-auth — both fully shipped), `docs/ai-test-use-cases/` (12 browser/API test prompts), `docs/ai-ux-review/` (7 UX review prompts), and the resolved/fixed bug reports under `open-bugs/` and `fixed-bugs/`
+- The earlier "Added `docs/ai-test-use-cases/`" and "Added `docs/ai-ux-review/`" entries above are retained as history; those folders no longer exist
+- Consolidated all deployment secret/config docs into `DEPLOYMENT.md` ("New-environment secrets checklist" section) and removed the standalone `docs/deployment-secrets.md`
+- Remaining docs: `docs/domain-model.md` (canonical rules) and `docs/progress.md` (this file); deployment specifics live in root `DEPLOYMENT.md`
 
 ---
 
