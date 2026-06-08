@@ -1,3 +1,4 @@
+import { HttpResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -109,6 +110,7 @@ export class RoomPage {
   });
 
   protected readonly room = signal<Room | null>(null);
+  protected readonly exporting = signal(false);
 
   protected readonly canModerate = computed(
     () =>
@@ -434,6 +436,35 @@ export class RoomPage {
   protected endRoundWithEstimate(card: Card): void {
     const roomId = this.roomId();
     if (roomId) this.api.endRound(roomId, card).subscribe();
+  }
+
+  protected exportVotes(): void {
+    const roomId = this.roomId();
+    if (!roomId || this.exporting()) return;
+    this.exporting.set(true);
+    this.api.exportRoomVotes(roomId).subscribe({
+      next: (response) => {
+        this.exporting.set(false);
+        const blob = response.body;
+        if (blob) this.downloadBlob(blob, this.filenameFrom(response) ?? 'room-votes.csv');
+      },
+      // The error interceptor already surfaces a snackbar; just clear the busy flag.
+      error: () => this.exporting.set(false),
+    });
+  }
+
+  private filenameFrom(response: HttpResponse<Blob>): string | null {
+    const disposition = response.headers.get('Content-Disposition');
+    return disposition?.match(/filename="?([^"]+)"?/i)?.[1] ?? null;
+  }
+
+  private downloadBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
 
   protected joinRoom(): void {

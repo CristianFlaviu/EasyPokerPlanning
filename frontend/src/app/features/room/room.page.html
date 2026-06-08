@@ -308,8 +308,8 @@
                     <button mat-stroked-button (click)="resetRound()">
                       <mat-icon>refresh</mat-icon> Reset
                     </button>
-                    <button mat-flat-button color="primary" (click)="endRound()">
-                      End without estimate
+                    <button mat-flat-button class="rail-end-skip" (click)="endRound()">
+                      <mat-icon>block</mat-icon> End without estimate
                     </button>
                   </div>
                   <div class="rail-end-as">
@@ -382,6 +382,20 @@
                   </li>
                 }
               </ul>
+            </section>
+          }
+
+          @if (canModerate()) {
+            <section class="rail-block">
+              <header><h3>Export</h3></header>
+              <button
+                mat-stroked-button
+                class="rail-action"
+                [disabled]="exporting()"
+                (click)="exportVotes()"
+              >
+                <mat-icon>download</mat-icon> Export votes (CSV)
+              </button>
             </section>
           }
         </aside>

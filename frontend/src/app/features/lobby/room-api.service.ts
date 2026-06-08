@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -128,6 +128,13 @@ export class RoomApiService {
 
   getRoomHistory(roomId: RoomId): Observable<RoomHistoryResponse> {
     return this.http.get<RoomHistoryResponse>(`${this.baseUrl}/${roomId}/history`);
+  }
+
+  exportRoomVotes(roomId: RoomId): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.baseUrl}/${roomId}/votes.csv`, {
+      responseType: 'blob',
+      observe: 'response',
+    });
   }
 
   promoteModerator(roomId: RoomId, participantId: ParticipantId): Observable<void> {

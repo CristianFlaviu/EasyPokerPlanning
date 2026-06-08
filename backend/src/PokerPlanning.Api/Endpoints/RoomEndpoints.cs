@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Security.Claims;
+using System.Text;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -9,6 +11,7 @@ using PokerPlanning.Application.Features.ChangeRole;
 using PokerPlanning.Application.Features.DemoteModerator;
 using PokerPlanning.Application.Features.CreateRoom;
 using PokerPlanning.Application.Features.EndRound;
+using PokerPlanning.Application.Features.ExportRoomVotes;
 using PokerPlanning.Application.Features.GetRoom;
 using PokerPlanning.Application.Features.GetParticipantRooms;
 using PokerPlanning.Application.Features.GetRoomHistory;
@@ -47,6 +50,10 @@ public static class RoomEndpoints
         group.MapGet("{id:guid}/history", GetRoomHistory)
             .WithName("GetRoomHistory")
             .WithSummary("Get completed rounds for a room.");
+
+        group.MapGet("{id:guid}/votes.csv", ExportRoomVotes)
+            .WithName("ExportRoomVotes")
+            .WithSummary("Export completed-round votes as CSV.");
 
         group.MapPost("{id:guid}/join", JoinRoom)
             .WithName("JoinRoom")
@@ -254,6 +261,72 @@ public static class RoomEndpoints
                         round.StartedAt,
                         round.EndedAt))
                     .ToList())));
+    }
+
+    private static async Task<IResult> ExportRoomVotes(
+        Guid id,
+        IMediator mediator,
+        IUserContext userContext,
+        CancellationToken ct)
+    {
+        if (userContext.CurrentUserId is null)
+            return TypedResults.Unauthorized();
+
+        var result = await mediator.Send(
+            new ExportRoomVotesQuery(id, userContext.CurrentUserId),
+            ct);
+
+        // Success returns a file rather than JSON, so the standard ToHttpResult mapping doesn't fit.
+        if (result.IsFailure)
+            return ResultExtensions.Problem(result.Error);
+
+        var csv = BuildVotesCsv(result.Value);
+
+        // Lead with a UTF-8 BOM so Excel renders accented names and the "?" card correctly.
+        var bytes = new byte[Encoding.UTF8.GetPreamble().Length + Encoding.UTF8.GetByteCount(csv)];
+        Encoding.UTF8.GetPreamble().CopyTo(bytes, 0);
+        Encoding.UTF8.GetBytes(csv, 0, csv.Length, bytes, Encoding.UTF8.GetPreamble().Length);
+
+        return Results.File(bytes, "text/csv; charset=utf-8", $"{SlugifyFileName(result.Value.RoomName)}-votes.csv");
+    }
+
+    private static string BuildVotesCsv(ExportRoomVotesResult export)
+    {
+        // Wide layout: one row per round, one column per voter (cell = that voter's card, blank if none).
+        List<string> header = ["Round", "Title"];
+        header.AddRange(export.Voters.Select(v => v.Name));
+        header.Add("FinalEstimate");
+
+        var rows = export.Rounds.Select(round =>
+        {
+            var row = new List<string>(header.Count)
+            {
+                round.Number.ToString(CultureInfo.InvariantCulture),
+                round.Title ?? string.Empty,
+            };
+            foreach (var voter in export.Voters)
+                row.Add(round.VotesByParticipant.TryGetValue(voter.ParticipantId, out var card) ? card : string.Empty);
+            row.Add(round.FinalEstimate ?? string.Empty);
+            return (IReadOnlyList<string>)row;
+        });
+
+        return CsvWriter.Build(header, rows);
+    }
+
+    // Produces a filename-safe slug; falls back to "room" when nothing usable remains.
+    private static string SlugifyFileName(string name)
+    {
+        var slug = new string(name
+            .Trim()
+            .ToLowerInvariant()
+            .Select(c => char.IsLetterOrDigit(c) ? c : '-')
+            .ToArray())
+            .Trim('-');
+
+        while (slug.Contains("--"))
+            slug = slug.Replace("--", "-");
+
+        return string.IsNullOrEmpty(slug) ? "room" : slug;
     }
 
     private static async Task<IResult> StartRound(
