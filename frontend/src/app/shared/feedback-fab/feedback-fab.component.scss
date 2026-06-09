@@ -1,0 +1,123 @@
+.feedback-fab {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+
+  &__btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    color: white;
+    background:
+      linear-gradient(140deg, var(--pp-cyan), var(--pp-accent) 48%, var(--pp-accent-deep));
+    box-shadow: 0 12px 28px oklch(58% 0.17 246 / 0.32);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+
+    mat-icon {
+      font-size: 26px;
+      width: 26px;
+      height: 26px;
+    }
+
+    &:hover,
+    &:focus-visible {
+      transform: translateY(-2px) scale(1.04);
+      box-shadow: 0 16px 34px oklch(58% 0.17 246 / 0.4);
+    }
+
+    &--active {
+      transform: scale(1.04);
+      box-shadow: 0 16px 34px oklch(58% 0.17 246 / 0.4);
+    }
+  }
+
+  &__teaser {
+    position: relative;
+    max-width: 260px;
+    padding: 14px 16px 14px;
+    border-radius: var(--pp-radius-lg);
+    background: var(--pp-surface);
+    border: 1px solid oklch(84% 0.03 250);
+    box-shadow: var(--pp-shadow-md);
+    color: var(--pp-ink);
+    font-size: 13px;
+    line-height: 1.45;
+
+    strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    p {
+      margin: 0;
+      color: var(--pp-ink-soft);
+    }
+
+    // Little pointer toward the FAB below.
+    &::after {
+      content: '';
+      position: absolute;
+      left: 22px;
+      bottom: -7px;
+      width: 14px;
+      height: 14px;
+      background: var(--pp-surface);
+      border-right: 1px solid oklch(84% 0.03 250);
+      border-bottom: 1px solid oklch(84% 0.03 250);
+      transform: rotate(45deg);
+    }
+  }
+
+  &__teaser-close {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    color: var(--pp-ink-soft);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    transition: background 140ms ease;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+
+    &:hover {
+      background: var(--pp-accent-soft);
+    }
+  }
+
+  &__link {
+    border: none;
+    background: transparent;
+    padding: 0;
+    font: inherit;
+    color: var(--pp-accent);
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+}
+
+@media (max-width: 640px) {
+  .feedback-fab__teaser {
+    display: none;
+  }
+}

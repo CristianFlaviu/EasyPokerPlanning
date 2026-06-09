@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { Observable, Subject } from 'rxjs';
 import {
   HubConnection,
   HubConnectionBuilder,
@@ -58,6 +59,19 @@ interface RevealedVoteMessage {
   readonly card: Vote['card'];
 }
 
+interface ReactionThrownMessage {
+  readonly fromParticipantId: string;
+  readonly toParticipantId: string;
+  readonly emoji: string;
+}
+
+// An emoji thrown from one seat at another. Ephemeral — purely a visual cue, never stored.
+export interface ThrownReaction {
+  readonly fromParticipantId: string;
+  readonly toParticipantId: string;
+  readonly emoji: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class SignalRService {
   private readonly roomAccess = inject(RoomAccessService);
@@ -68,6 +82,11 @@ export class SignalRService {
   readonly moderatorIds = signal<readonly string[]>([]);
   readonly currentRound = signal<CurrentRound | null>(null);
   readonly connectionState = signal<ConnectionState>('disconnected');
+
+  // Reactions fire-and-forget; a stream fits better than a signal since identical
+  // throws must each replay an animation. Components subscribe and drive the visuals.
+  private readonly reactionThrown = new Subject<ThrownReaction>();
+  readonly reactions$: Observable<ThrownReaction> = this.reactionThrown.asObservable();
 
   constructor() {
     window.addEventListener('pp:signout', () => void this.disconnectFromRoom());
@@ -237,6 +256,14 @@ export class SignalRService {
             : participant,
         ),
       );
+    });
+
+    this.connection.on('ReactionThrown', (message: ReactionThrownMessage) => {
+      this.reactionThrown.next({
+        fromParticipantId: message.fromParticipantId,
+        toParticipantId: message.toParticipantId,
+        emoji: message.emoji,
+      });
     });
 
     await this.connection.start();

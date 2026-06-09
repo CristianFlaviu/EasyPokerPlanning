@@ -28,6 +28,7 @@ public static class DependencyInjection
         services.AddScoped<IRoomRepository, RoomRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IEmailLoginTokenRepository, EmailLoginTokenRepository>();
+        services.AddScoped<IFeedbackRepository, FeedbackRepository>();
         services.AddScoped<IEmailSender, GmailSmtpEmailSender>();
         services.AddScoped<IAvatarStorage, AzureBlobAvatarStorage>();
         services.AddSingleton<IRoomLiveStateStore, RedisRoomLiveStateStore>();

@@ -199,6 +199,7 @@ using (var scope = app.Services.CreateScope())
 app.MapDefaultEndpoints();
 app.MapRoomEndpoints();
 app.MapAuthEndpoints();
+app.MapFeedbackEndpoints();
 app.MapHub<RoomHub>("/hubs/rooms");
 
 app.Run();

@@ -41,7 +41,9 @@
       "Read(//tmp/**)",
       "Read(//c/Users/cristianflaviu/AppData/Local/Temp/aspire-dcp0gvvfsin.v4n/**)",
       "Bash(sort -k5 -n)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(grep -rl \"EntityFrameworkCore.Design\" backend/src/*/*.csproj; echo \"---tools---\"; ls ~/.dotnet/tools 2>/dev/null; dotnet ef --version 2>&1 | tail -2)",
+      "Read(//c/Users/cristianflaviu/.dotnet/tools/**)"
     ]
   }
 }

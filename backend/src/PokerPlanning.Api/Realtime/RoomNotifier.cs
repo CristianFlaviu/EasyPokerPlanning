@@ -146,4 +146,18 @@ public sealed class RoomNotifier(
             .Group(RoomHub.GroupName(roomId.Value))
             .ParticipantProfileChanged(message);
     }
+
+    public Task ReactionThrownAsync(
+        RoomId roomId,
+        ParticipantId fromParticipantId,
+        ParticipantId toParticipantId,
+        string emoji,
+        CancellationToken ct)
+    {
+        var message = new ReactionThrownMessage(fromParticipantId.Value, toParticipantId.Value, emoji);
+
+        return hubContext.Clients
+            .Group(RoomHub.GroupName(roomId.Value))
+            .ReactionThrown(message);
+    }
 }

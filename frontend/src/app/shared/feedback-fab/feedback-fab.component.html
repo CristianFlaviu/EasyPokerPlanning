@@ -1,0 +1,33 @@
+<div class="feedback-fab">
+  @if (teaserOpen()) {
+    <div class="feedback-fab__teaser pp-pop">
+      <button
+        type="button"
+        class="feedback-fab__teaser-close"
+        aria-label="Dismiss"
+        (click)="closeTeaser()"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+      <strong>Any suggestions?</strong>
+      <p>
+        Please
+        <button type="button" class="feedback-fab__link" (click)="openDialog()">Contact us!</button>
+        We want to make the best app possible for you 🙂
+      </p>
+    </div>
+  }
+
+  <button
+    type="button"
+    class="feedback-fab__btn"
+    [class.feedback-fab__btn--active]="teaserOpen()"
+    matTooltip="Feedback"
+    matTooltipPosition="right"
+    aria-label="Open feedback"
+    [attr.aria-expanded]="teaserOpen()"
+    (click)="toggleTeaser()"
+  >
+    <mat-icon>forum</mat-icon>
+  </button>
+</div>

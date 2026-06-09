@@ -1,0 +1,38 @@
+.feedback-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    h2 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    mat-form-field {
+      width: 100%;
+    }
+
+    textarea {
+      resize: vertical;
+    }
+  }
+
+  &__submit {
+    margin-top: 6px;
+    width: 100%;
+  }
+}

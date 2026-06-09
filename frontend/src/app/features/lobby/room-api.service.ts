@@ -158,4 +158,8 @@ export class RoomApiService {
   removeParticipant(roomId: RoomId, participantId: ParticipantId): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${roomId}/participants/${participantId}`);
   }
+
+  throwReaction(roomId: RoomId, toParticipantId: ParticipantId, emoji: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/${roomId}/reactions`, { toParticipantId, emoji });
+  }
 }

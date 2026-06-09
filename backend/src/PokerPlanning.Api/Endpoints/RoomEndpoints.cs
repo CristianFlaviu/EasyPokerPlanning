@@ -24,6 +24,7 @@ using PokerPlanning.Application.Features.RestoreRoomAccess;
 using PokerPlanning.Application.Features.RevealVotes;
 using PokerPlanning.Application.Features.StartRound;
 using PokerPlanning.Application.Features.SubmitVote;
+using PokerPlanning.Application.Features.ThrowReaction;
 using PokerPlanning.Domain.Participants;
 using PokerPlanning.Domain.Rooms;
 
@@ -90,6 +91,10 @@ public static class RoomEndpoints
         group.MapDelete("{id:guid}/moderators/{participantId:guid}", DemoteModerator)
             .WithName("DemoteModerator")
             .WithSummary("Demote a participant from moderator.");
+
+        group.MapPost("{id:guid}/reactions", ThrowReaction)
+            .WithName("ThrowReaction")
+            .WithSummary("Throw an emoji reaction at another participant.");
 
         group.MapPost("{id:guid}/participants/me/role", ChangeRole)
             .WithName("ChangeRole")
@@ -440,6 +445,26 @@ public static class RoomEndpoints
         return result.ToHttpResult(TypedResults.NoContent());
     }
 
+    private static async Task<IResult> ThrowReaction(
+        Guid id,
+        ThrowReactionRequest request,
+        IMediator mediator,
+        HttpContext http,
+        IRoomAccessTokenService tokens,
+        CancellationToken ct)
+    {
+        // The thrower is the token-bound seat, never the request body, so reactions
+        // cannot be spoofed as coming from another participant.
+        if (!TryResolveSeat(http, id, tokens, out var fromParticipantId))
+            return RoomAccessRequired();
+
+        var result = await mediator.Send(
+            new ThrowReactionCommand(id, fromParticipantId, request.ToParticipantId, request.Emoji),
+            ct);
+
+        return result.ToHttpResult(TypedResults.NoContent());
+    }
+
     private static async Task<IResult> ChangeRole(
         Guid id,
         ChangeRoleRequest request,
@@ -598,6 +623,8 @@ public sealed record SubmitVoteRequest(string Card);
 public sealed record EndRoundRequest(string? FinalEstimate = null);
 
 public sealed record ChangeRoleRequest(string Role);
+
+public sealed record ThrowReactionRequest(Guid ToParticipantId, string Emoji);
 
 public sealed record GetParticipantRoomsResponse(
     IReadOnlyList<ParticipantRoomSummaryResponse> Rooms);

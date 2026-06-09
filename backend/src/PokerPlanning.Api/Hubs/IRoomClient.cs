@@ -13,6 +13,7 @@ public interface IRoomClient
     Task ModeratorDemoted(ModeratorChangedMessage moderator);
     Task ParticipantRoleChanged(ParticipantRoleChangedMessage participant);
     Task ParticipantProfileChanged(ParticipantProfileChangedMessage participant);
+    Task ReactionThrown(ReactionThrownMessage reaction);
 }
 
 public sealed record ParticipantJoinedMessage(
@@ -56,3 +57,8 @@ public sealed record ParticipantProfileChangedMessage(
     Guid ParticipantId,
     string DisplayName,
     string? AvatarUrl);
+
+public sealed record ReactionThrownMessage(
+    Guid FromParticipantId,
+    Guid ToParticipantId,
+    string Emoji);

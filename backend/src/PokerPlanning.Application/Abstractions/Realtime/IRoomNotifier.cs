@@ -45,4 +45,11 @@ public interface IRoomNotifier
         string displayName,
         string? avatarUrl,
         CancellationToken ct);
+
+    Task ReactionThrownAsync(
+        RoomId roomId,
+        ParticipantId fromParticipantId,
+        ParticipantId toParticipantId,
+        string emoji,
+        CancellationToken ct);
 }

@@ -122,7 +122,7 @@
           <div class="room__table">
             <div class="seats seats--top">
               @for (seat of topSeats(); track seat.id) {
-                <div class="seat pp-fade-up" [class.seat--self]="seat.isSelf">
+                <div class="seat pp-fade-up" [class.seat--self]="seat.isSelf" [attr.data-pid]="seat.id">
                   @if (seat.isObserver) {
                     <div class="seat__card seat__card--observer"><mat-icon>visibility</mat-icon></div>
                   } @else if (seat.revealedCard) {
@@ -151,6 +151,18 @@
                     }
                     <span class="seat__name">{{ seat.displayName }}</span>
                     <span class="seat__role">{{ seat.role }}</span>
+                    @if (!seat.isSelf) {
+                      <div class="seat__reactbar" role="group" aria-label="Throw a reaction">
+                        @for (emoji of reactionEmojis; track emoji) {
+                          <button
+                            type="button"
+                            class="seat__react-emoji"
+                            [attr.aria-label]="'Throw ' + emoji"
+                            (click)="throwReaction(seat.id, emoji)"
+                          >{{ emoji }}</button>
+                        }
+                      </div>
+                    }
                   </div>
                 </div>
               }
@@ -190,7 +202,7 @@
 
             <div class="seats seats--bottom">
               @for (seat of bottomSeats(); track seat.id) {
-                <div class="seat pp-fade-up" [class.seat--self]="seat.isSelf">
+                <div class="seat pp-fade-up" [class.seat--self]="seat.isSelf" [attr.data-pid]="seat.id">
                   <div class="seat__person">
                     @if (seat.avatarUrl) {
                       <img
@@ -205,6 +217,18 @@
                     }
                     <span class="seat__name">{{ seat.displayName }}</span>
                     <span class="seat__role">{{ seat.role }}</span>
+                    @if (!seat.isSelf) {
+                      <div class="seat__reactbar" role="group" aria-label="Throw a reaction">
+                        @for (emoji of reactionEmojis; track emoji) {
+                          <button
+                            type="button"
+                            class="seat__react-emoji"
+                            [attr.aria-label]="'Throw ' + emoji"
+                            (click)="throwReaction(seat.id, emoji)"
+                          >{{ emoji }}</button>
+                        }
+                      </div>
+                    }
                   </div>
                   @if (seat.isObserver) {
                     <div class="seat__card seat__card--observer"><mat-icon>visibility</mat-icon></div>
@@ -221,6 +245,18 @@
                     <div class="seat__card seat__card--empty"></div>
                   }
                 </div>
+              }
+            </div>
+
+            <div class="reactions-overlay" aria-hidden="true">
+              @for (reaction of flyingReactions(); track reaction.id) {
+                <span
+                  class="flying-reaction"
+                  [style.--from-x.px]="reaction.fromX"
+                  [style.--from-y.px]="reaction.fromY"
+                  [style.--to-x.px]="reaction.toX"
+                  [style.--to-y.px]="reaction.toY"
+                >{{ reaction.emoji }}</span>
               }
             </div>
           </div>

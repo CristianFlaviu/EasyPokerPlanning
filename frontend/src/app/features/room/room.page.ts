@@ -1,5 +1,5 @@
 import { HttpResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal } from '@angular/core';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -9,11 +9,11 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { RoomApiService } from '../lobby/room-api.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { SignalRService } from '../../core/signalr/signalr.service';
+import { SignalRService, ThrownReaction } from '../../core/signalr/signalr.service';
 import { IdentityService } from '../../core/identity/identity.service';
 import { RoomAccessService } from '../../core/identity/room-access.service';
 import { Card, FIBONACCI_DECK, ParticipantId, ParticipantRole, Room, RoomId } from '../../domain/room';
@@ -64,6 +64,19 @@ interface ActionCue {
   readonly tone: 'neutral' | 'action' | 'success';
 }
 
+// A single emoji in flight, with start/end coordinates relative to the table container.
+interface FlyingReaction {
+  readonly id: string;
+  readonly emoji: string;
+  readonly fromX: number;
+  readonly fromY: number;
+  readonly toX: number;
+  readonly toY: number;
+}
+
+// Fixed "throwable" palette — must mirror the server-side ReactionEmojis allow-list.
+const REACTION_EMOJIS = ['🍅', '☕', '❤️', '🎉', '💩', '👏', '👍', '👀'] as const;
+
 @Component({
   selector: 'pp-room-page',
   imports: [
@@ -92,6 +105,7 @@ export class RoomPage {
   private readonly fb = inject(FormBuilder);
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
+  private readonly host = inject(ElementRef<HTMLElement>);
 
   protected readonly roomId = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('id') ?? '')),
@@ -111,6 +125,11 @@ export class RoomPage {
 
   protected readonly room = signal<Room | null>(null);
   protected readonly exporting = signal(false);
+
+  protected readonly reactionEmojis = REACTION_EMOJIS;
+  protected readonly flyingReactions = signal<readonly FlyingReaction[]>([]);
+  private lastThrowAt = 0;
+  private reactionSeq = 0;
 
   protected readonly canModerate = computed(
     () =>
@@ -198,15 +217,15 @@ export class RoomPage {
     if (!round) {
       return canModerate
         ? {
-            icon: 'play_circle',
-            text: 'Start a round when the team is ready to estimate.',
-            tone: 'action',
-          }
+          icon: 'play_circle',
+          text: 'Start a round when the team is ready to estimate.',
+          tone: 'action',
+        }
         : {
-            icon: 'hourglass_empty',
-            text: 'Waiting for a moderator to start the next round.',
-            tone: 'neutral',
-          };
+          icon: 'hourglass_empty',
+          text: 'Waiting for a moderator to start the next round.',
+          tone: 'neutral',
+        };
     }
 
     if (round.phase === 'Voting') {
@@ -222,44 +241,44 @@ export class RoomPage {
         const remaining = Math.max(this.voterCount() - this.votedCount(), 0);
         return remaining === 0 && this.voterCount() > 0
           ? {
-              icon: 'task_alt',
-              text: 'All voters have picked. Reveal when discussion is ready.',
-              tone: 'success',
-            }
+            icon: 'task_alt',
+            text: 'All voters have picked. Reveal when discussion is ready.',
+            tone: 'success',
+          }
           : {
-              icon: 'how_to_vote',
-              text:
-                this.votedCount() === 0
-                  ? 'Waiting for the first vote before reveal is available.'
-                  : `${this.votedCount()} of ${this.voterCount()} voters have picked. Reveal when discussion is ready.`,
-              tone: 'action',
-            };
+            icon: 'how_to_vote',
+            text:
+              this.votedCount() === 0
+                ? 'Waiting for the first vote before reveal is available.'
+                : `${this.votedCount()} of ${this.voterCount()} voters have picked. Reveal when discussion is ready.`,
+            tone: 'action',
+          };
       }
 
       return this.ownVote()
         ? {
-            icon: 'check_circle',
-            text: 'Your vote is saved. You can change it until the reveal.',
-            tone: 'success',
-          }
+          icon: 'check_circle',
+          text: 'Your vote is saved. You can change it until the reveal.',
+          tone: 'success',
+        }
         : {
-            icon: 'style',
-            text: 'Pick a card from your deck before the moderator reveals.',
-            tone: 'action',
-          };
+          icon: 'style',
+          text: 'Pick a card from your deck before the moderator reveals.',
+          tone: 'action',
+        };
     }
 
     return canModerate
       ? {
-          icon: 'analytics',
-          text: 'Review the distribution, then choose a final estimate or reset the vote.',
-          tone: 'action',
-        }
+        icon: 'analytics',
+        text: 'Review the distribution, then choose a final estimate or reset the vote.',
+        tone: 'action',
+      }
       : {
-          icon: 'analytics',
-          text: 'Results are revealed. Waiting for the moderator to end or reset the round.',
-          tone: 'neutral',
-        };
+        icon: 'analytics',
+        text: 'Results are revealed. Waiting for the moderator to end or reset the round.',
+        tone: 'neutral',
+      };
   });
 
   protected readonly stats = computed<RevealedStats | null>(() => {
@@ -371,6 +390,74 @@ export class RoomPage {
       }
       onCleanup(() => void this.signalr.disconnectFromRoom());
     });
+
+    this.signalr.reactions$
+      .pipe(takeUntilDestroyed())
+      .subscribe((reaction) => {
+        try {
+          this.spawnReaction(reaction);
+        } catch (err) {
+          console.error('Failed to render reaction', err);
+        }
+      });
+  }
+
+  protected throwReaction(targetId: ParticipantId, emoji: string): void {
+    const roomId = this.roomId();
+    if (!roomId || targetId === this.identity.participantId) return;
+
+    // Light client-side cooldown — loose enough to allow a little playful spam.
+    const now = Date.now();
+    if (now - this.lastThrowAt < 500) return;
+    this.lastThrowAt = now;
+
+    this.api.throwReaction(roomId, targetId, emoji).subscribe();
+  }
+
+  // Renders an incoming reaction as an emoji that arcs from the sender's seat to the
+  // target's seat, then self-removes once the animation has played.
+  private spawnReaction(reaction: ThrownReaction): void {
+    const table = this.host.nativeElement.querySelector('.room__table') as HTMLElement | null;
+    if (!table) return;
+
+    const target = table.querySelector(
+      `[data-pid="${reaction.toParticipantId}"] .pp-avatar`,
+    ) as HTMLElement | null;
+    if (!target) return;
+
+    const sender = table.querySelector(
+      `[data-pid="${reaction.fromParticipantId}"] .pp-avatar`,
+    ) as HTMLElement | null;
+
+    const base = table.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const senderRect = sender?.getBoundingClientRect() ?? targetRect;
+
+    const center = (rect: DOMRect, axis: 'x' | 'y') =>
+      axis === 'x'
+        ? rect.left + rect.width / 2 - base.left
+        : rect.top + rect.height / 2 - base.top;
+
+    const item: FlyingReaction = {
+      id: this.nextReactionId(),
+      emoji: reaction.emoji,
+      fromX: center(senderRect, 'x'),
+      fromY: center(senderRect, 'y'),
+      toX: center(targetRect, 'x'),
+      toY: center(targetRect, 'y'),
+    };
+
+    this.flyingReactions.update((list) => [...list, item]);
+    setTimeout(
+      () => this.flyingReactions.update((list) => list.filter((r) => r.id !== item.id)),
+      1100,
+    );
+  }
+
+  // Local-only unique id. Avoids crypto.randomUUID, which is undefined in insecure
+  // (non-HTTPS) contexts and older browsers.
+  private nextReactionId(): string {
+    return `r-${Date.now()}-${this.reactionSeq++}`;
   }
 
   private restoreAccessAndLoadRoom(roomId: RoomId): void {

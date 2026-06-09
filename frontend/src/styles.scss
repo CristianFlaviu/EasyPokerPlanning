@@ -309,12 +309,17 @@ body {
 }
 
 .share-room-dialog-panel .mat-mdc-dialog-surface,
-.join-room-dialog-panel .mat-mdc-dialog-surface {
+.join-room-dialog-panel .mat-mdc-dialog-surface,
+.feedback-dialog-panel .mat-mdc-dialog-surface {
   border-radius: var(--pp-radius-lg) !important;
   border: 1px solid oklch(84% 0.03 250 / 0.9);
   background:
     linear-gradient(180deg, oklch(100% 0 0 / 0.98), oklch(98% 0.01 250 / 0.98)) !important;
   box-shadow: var(--pp-shadow-lg) !important;
+}
+
+.feedback-dialog-panel .mat-mdc-dialog-surface {
+  padding: 24px;
 }
 
 .auth-dialog-panel .mat-mdc-dialog-surface {
@@ -812,6 +817,7 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 18px;
+    position: relative;
   }
 
   &__felt {
@@ -949,6 +955,7 @@ body {
   align-items: center;
   gap: 6px;
   min-width: 80px;
+  position: relative;
   transition: transform 220ms ease;
 
   &:hover {
@@ -977,6 +984,66 @@ body {
     font-size: 9px;
     letter-spacing: 0;
     color: var(--pp-ink-soft);
+  }
+
+  // Floating reaction pill above the card. Hidden until the seat is hovered/focused,
+  // and stays open while pointer is on it so the user can throw several in a row.
+  &__reactbar {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 5px 8px;
+    border-radius: var(--pp-radius-pill);
+    background: oklch(28% 0.03 250 / 0.94);
+    box-shadow: var(--pp-shadow-md);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 6px) scale(0.96);
+    transform-origin: bottom center;
+    transition: opacity 160ms ease, transform 160ms ease;
+    z-index: 6;
+
+    // Invisible bridge over the gap so moving between seat and pill keeps hover alive.
+    &::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      height: 10px;
+    }
+  }
+
+  &:hover &__reactbar,
+  &:focus-within &__reactbar {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, 0) scale(1);
+  }
+
+  &__react-emoji {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 4px;
+    border-radius: 50%;
+    transition: transform 120ms ease, background 120ms ease;
+
+    &:hover,
+    &:focus-visible {
+      background: oklch(100% 0 0 / 0.16);
+      transform: scale(1.28);
+    }
+
+    &:active {
+      transform: scale(1.05);
+    }
   }
 
   &__card {
@@ -1034,6 +1101,70 @@ body {
 
     &--accent {
       color: var(--pp-accent);
+    }
+  }
+}
+
+// Ephemeral emoji-throw animation layer, stretched over the whole table.
+.reactions-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 5;
+}
+
+.flying-reaction {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: -0.9rem 0 0 -0.9rem;
+  font-size: 1.8rem;
+  line-height: 1;
+  filter: drop-shadow(0 4px 6px oklch(12% 0.04 250 / 0.25));
+  will-change: transform, opacity;
+  animation: reaction-throw 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes reaction-throw {
+  0% {
+    transform: translate(var(--from-x), var(--from-y)) scale(0.4) rotate(-12deg);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  70% {
+    transform: translate(var(--to-x), calc(var(--to-y) - 46px)) scale(1.05) rotate(8deg);
+    opacity: 1;
+  }
+  85% {
+    transform: translate(var(--to-x), var(--to-y)) scale(1.7) rotate(-4deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--to-x), var(--to-y)) scale(1.1);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flying-reaction {
+    animation: reaction-pop 900ms ease forwards;
+  }
+
+  @keyframes reaction-pop {
+    0% {
+      transform: translate(var(--to-x), var(--to-y)) scale(0.6);
+      opacity: 0;
+    }
+    25% {
+      transform: translate(var(--to-x), var(--to-y)) scale(1.4);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(var(--to-x), var(--to-y)) scale(1.1);
+      opacity: 0;
     }
   }
 }

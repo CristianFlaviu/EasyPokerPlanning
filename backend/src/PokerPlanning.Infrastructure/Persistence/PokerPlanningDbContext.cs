@@ -5,6 +5,7 @@ using PokerPlanning.Application.Common;
 using PokerPlanning.Domain.Common;
 using PokerPlanning.Domain.Rooms;
 using PokerPlanning.Domain.Users;
+using FeedbackEntity = PokerPlanning.Domain.Feedback.Feedback;
 
 namespace PokerPlanning.Infrastructure.Persistence;
 
@@ -15,6 +16,7 @@ public sealed class PokerPlanningDbContext(
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<User> Users => Set<User>();
     public DbSet<EmailLoginToken> EmailLoginTokens => Set<EmailLoginToken>();
+    public DbSet<FeedbackEntity> Feedbacks => Set<FeedbackEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
